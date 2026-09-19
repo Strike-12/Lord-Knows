@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elsen Keena | Grossmont High School Student, Web Developer & Streetwear Brand</title>
+  <meta name="description" content="Portfolio and streetwear brand created by Elsen Keena: Grossmont High School student, web developer, artist, and clothing entrepreneur.">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar with Live 2027 Countdown Ticker -->
+  <div class="top-ticker" id="top-announcement-bar">
+    <div class="ticker-left">
+      <span class="ticker-live-dot" style="background:var(--accent-purple);"></span>
+      <span>ELSEN KEENA // ARCHIVE &amp; STREETWEAR DROP // JANUARY 1, 2027</span>
+    </div>
+    <div id="top-countdown-ticker" style="color:var(--accent-purple-light); font-weight:700;">
+      CALCULATING COUNTDOWN...
+    </div>
+  </div>
+
+  <!-- Main Navigation Header (Universal 6 Pages) -->
+  <header class="site-header" id="main-header">
+    <div class="container header-inner">
+      <a href="/index.html" class="brand-logo" id="brand-logo-link">
+        <span class="brand-text" style="color:#ffffff;">ELSEN KEENA</span>
+        <span class="brand-badge" style="border-color:var(--accent-purple); color:var(--accent-purple-light);">PORTFOLIO &amp; BRAND</span>
+      </a>
+
+      <nav class="site-nav" id="main-nav">
+        <a href="/index.html" class="nav-link active" id="nav-home">Home</a>
+        <a href="/media.html" class="nav-link" id="nav-media">Media</a>
+        <a href="/future.html" class="nav-link nav-highlight" id="nav-future">
+          <span>Future</span>
+          <span style="font-size:0.7rem; background:rgba(168,85,247,0.25); color:var(--accent-purple-light); padding:2px 6px; border-radius:3px;">2027</span>
+        </a>
+        <a href="/collection.html" class="nav-link" id="nav-collection">Collection</a>
+        <a href="/lookbook.html" class="nav-link" id="nav-lookbook">Lookbook</a>
+        <a href="/admin.html" class="nav-link" id="nav-admin" style="color:var(--text-muted);">Admin</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="#contact-section" class="action-btn btn-primary" id="header-contact-btn">
+          <span>Contact Elsen</span>
+        </a>
+        <button class="mobile-menu-toggle" id="mobile-menu-button" aria-label="Toggle menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <!-- HERO SECTION: <h1> Full Name and Prominent Photo Above Fold -->
+    <section class="hero" id="hero-section" style="padding: 4.5rem 0 3.5rem; border-bottom: 1px solid var(--border-subtle);">
+      <div class="container hero-grid">
+        <div style="display:flex; flex-direction:column; justify-content:center;">
+          <div class="hero-tag" style="color:var(--accent-purple-light); border-color:var(--border-prominent);">
+            GROSSMONT HIGH SCHOOL // WEB DEVELOPER // STREETWEAR ARCHIVE
+          </div>
+          <h1 class="hero-heading" id="student-name-h1" style="font-size: clamp(2.8rem, 6vw, 4.2rem); line-height: 1.05; margin: 0.75rem 0 1.5rem; letter-spacing: -0.02em;">
+            Elsen Keena
+          </h1>
+          <p class="hero-lead" style="font-size: 1.15rem; color: var(--text-secondary); max-width: 580px; margin-bottom: 2rem;">
+            Grossmont High School student, emerging web developer, freelance creator, sports athlete, and streetwear clothing designer &amp; reseller. Turning raw passion for design, anime illustration, and coding into real-world businesses.
+          </p>
+          <div class="hero-actions" style="display:flex; gap:1rem; flex-wrap:wrap;">
+            <a href="#biography-section" class="action-btn btn-primary" id="hero-bio-btn" style="padding: 0.85rem 1.85rem;">
+              Read My Story
+            </a>
+            <a href="#contact-section" class="action-btn btn-secondary" id="hero-contact-btn" style="padding: 0.85rem 1.85rem;">
+              Send Message
+            </a>
+            <a href="/collection.html" class="action-btn btn-outline" id="hero-collection-btn" style="padding: 0.85rem 1.85rem;">
+              Streetwear Vault →
+            </a>
+          </div>
+        </div>
+
+        <!-- Prominent Photo Above the Fold: Elsen Keena with Dark Moody Vibe & Yuji Itadori -->
+        <div class="hero-image-frame" id="hero-photo-frame" style="border: 1px solid var(--border-prominent); border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 25px var(--accent-purple-glow);">
+          <img 
+            id="hero-student-photo" 
+            src="/assets/images/elsen_profile.jpg" 
+            alt="Elsen Keena - Grossmont High School Student & Web Developer" 
+            style="width: 100%; height: 100%; object-fit: cover; aspect-ratio: 4/5; display: block;"
+          />
+          <div class="hero-overlay-tag" style="background: rgba(9, 9, 11, 0.9); border-top: 1px solid var(--border-prominent); color: var(--accent-purple-light);">
+            ELSEN KEENA // OFFICIAL PROFILE // GROSSMONT HIGH
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BIOGRAPHY SECTION: Exactly 3 <p> Elements -->
+    <section class="biography-section" id="biography-section" style="padding: 5rem 0; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface);">
+      <div class="container" style="max-width: 960px;">
+        <div style="text-align: center; margin-bottom: 3rem;">
+          <span style="font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.15em; color: var(--accent-purple-light); text-transform: uppercase;">
+            BACKGROUND &amp; ASPIRATIONS
+          </span>
+          <h2 style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 900; text-transform: uppercase; margin-top: 0.5rem;">
+            About Elsen
+          </h2>
+          <div style="width: 60px; height: 3px; background: var(--accent-purple); margin: 1rem auto 0; box-shadow: 0 0 10px var(--accent-purple-glow);"></div>
+        </div>
+
+        <!-- Bio Card with EXACTLY 3 Paragraphs -->
+        <div class="bio-card" id="bio-content-container">
+          <p class="bio-p" id="bio-paragraph-1">
+            I am a student at Grossmont High School. My general interests and biggest passions are clothing, football, businesses, money, sports, and reselling clothes. Outside of class, I love to draw, hit the field for football, stay active, and look for new opportunities to learn, hustle, and build.
+          </p>
+          <p class="bio-p" id="bio-paragraph-2">
+            In my web development class, we just now finished fully learning how to push and pull from Google AI Studio to GitHub to Replit, and mastering how to code in general and add images. What really helped me was taking what I learned from my teacher and applying it directly: I reached out to a real company and asked if I could make them a website, they said yes, and I made $200 from that project. My teacher was really proud of me.
+          </p>
+          <p class="bio-p" id="bio-paragraph-3">
+            When I'm not coding or working on school, my hobbies are playing football, drawing anime artwork in my sketchbooks, playing video games, and going out with friends. Fashion, streetwear, and reselling clothes are things I love doing, and I'm focused on building real skills that help me create my own brand, grow businesses, and make money in general.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MEDIA SECTION: At Least Two Images / Videos (Student Media + Artwork + Clothing) -->
+    <section class="media-showcase-section" id="media-showcase-section" style="padding: 5rem 0; border-bottom: 1px solid var(--border-subtle);">
+      <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <span style="font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em; color: var(--accent-purple-light); text-transform: uppercase;">
+              CREATIVE SHOWCASE &amp; VISUAL MEDIA
+            </span>
+            <h2 style="font-family: var(--font-display); font-size: 2.2rem; font-weight: 900; text-transform: uppercase;">
+              Featured Media
+            </h2>
+            <p style="color: var(--text-secondary); max-width: 540px; margin-top: 0.5rem;">
+              Explore original anime sketchbook drawings, dark aesthetic profile photography, and exclusive Lord Knows streetwear design pieces.
+            </p>
+          </div>
+          <a href="/media.html" class="action-btn btn-secondary" id="view-all-media-btn">
+            View All Media &amp; Upload Pics →
+          </a>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.75rem;">
+          <!-- Media Item 1: Student Profile with Dark Vibe -->
+          <div class="gallery-item" id="media-card-profile" style="overflow: hidden; border-radius: 10px; border: 1px solid var(--border-prominent); background: var(--bg-surface);">
+            <div style="aspect-ratio: 4/5; overflow: hidden; background: #000;">
+              <img src="/assets/images/elsen_profile.jpg" alt="Elsen Keena with Yuji Itadori in Cough Syrup shirt" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" />
+            </div>
+            <div style="padding: 1.25rem;">
+              <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent-purple-light); text-transform: uppercase;">PORTFOLIO PROFILE</span>
+              <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0.25rem 0 0.5rem; color: #ffffff;">Elsen Keena Aesthetic</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+                Dark moody portrait featuring Yuji Itadori in an Awful Lot of Cough Syrup streetwear tee and purple jeans.
+              </p>
+            </div>
+          </div>
+
+          <!-- Media Item 2: Anime Sketchbook Drawing Art -->
+          <div class="gallery-item" id="media-card-drawings" style="overflow: hidden; border-radius: 10px; border: 1px solid var(--border-prominent); background: var(--bg-surface);">
+            <div style="aspect-ratio: 4/5; overflow: hidden; background: #000;">
+              <img src="/assets/images/elsen_drawings.jpg" alt="Elsen Keena Anime Sketchbook Art - Sukuna, Light Yagami, Obito" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" />
+            </div>
+            <div style="padding: 1.25rem;">
+              <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent-purple-light); text-transform: uppercase;">ORIGINAL ARTWORK</span>
+              <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0.25rem 0 0.5rem; color: #ffffff;">Anime Sketchbook Illustrations</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+                Hand-drawn character studies including Sukuna / Yuji Itadori, Light Yagami, and Obito Uchiha from Elsen's art collection.
+              </p>
+            </div>
+          </div>
+
+          <!-- Media Item 3: Streetwear Apparel Design -->
+          <div class="gallery-item" id="media-card-streetwear" style="overflow: hidden; border-radius: 10px; border: 1px solid var(--border-prominent); background: var(--bg-surface);">
+            <div style="aspect-ratio: 4/5; overflow: hidden; background: #000;">
+              <img src="/assets/images/directed_lord_hoodie_puff_1789793017180.jpg" alt="DIRECTED BY THE LORD Heavyweight 500 GSM Hoodie" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" />
+            </div>
+            <div style="padding: 1.25rem;">
+              <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent-purple-light); text-transform: uppercase;">STREETWEAR ARCHIVE</span>
+              <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0.25rem 0 0.5rem; color: #ffffff;">Directed by The Lord Hoodie</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+                500 GSM heavyweight French terry cotton with tactile high-density puff print and barbed wire cross embroidery ($60).
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE COUNTDOWN SECTION: January 1, 2027 Global Archive Drop -->
+    <section class="countdown-section" id="countdown-section" style="padding: 5rem 0; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface);">
+      <div class="container">
+        <div class="countdown-badge" style="background: rgba(168,85,247,0.15); border: 1px solid var(--accent-purple); color: var(--accent-purple-light);">
+          ⏳ OFFICIAL COUNTDOWN
+        </div>
+        <h2 class="countdown-title">JANUARY 1, 2027</h2>
+        <p class="countdown-subtitle" style="color: var(--text-secondary);">
+          Counting down to the global drop and capsule premiere. 300 numbered collector garments, archival textiles, and worldwide shipping.
+        </p>
+
+        <!-- Live Ticking Clock Display -->
+        <div class="countdown-grid" id="countdown-grid-display">
+          <div class="countdown-card" style="border-color: var(--border-prominent);">
+            <div id="countdown-days" class="countdown-number" style="color: var(--accent-purple-light);">00</div>
+            <div class="countdown-label">DAYS</div>
+          </div>
+          <div class="countdown-card" style="border-color: var(--border-prominent);">
+            <div id="countdown-hours" class="countdown-number" style="color: var(--accent-purple-light);">00</div>
+            <div class="countdown-label">HOURS</div>
+          </div>
+          <div class="countdown-card" style="border-color: var(--border-prominent);">
+            <div id="countdown-minutes" class="countdown-number" style="color: var(--accent-purple-light);">00</div>
+            <div class="countdown-label">MINUTES</div>
+          </div>
+          <div class="countdown-card" style="border-color: var(--border-prominent);">
+            <div id="countdown-seconds" class="countdown-number" style="color: var(--accent-purple-light);">00</div>
+            <div class="countdown-label">SECONDS</div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:center; gap:1rem; flex-wrap:wrap; margin-top:2rem;">
+          <a href="/future.html" class="action-btn btn-secondary" id="countdown-future-btn">
+            View 2027 Future Roadmap
+          </a>
+          <a href="/media.html#upload-section" class="action-btn btn-outline" id="countdown-upload-btn">
+            Upload Your Pictures to Storage
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT SECTION & FORM: Social Links + Email + Full Contact Form -->
+    <section class="contact-section" id="contact-section">
+      <div class="container" style="max-width: 860px;">
+        <div style="text-align: center; margin-bottom: 2.5rem;">
+          <span style="font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.15em; color: var(--accent-purple-light); text-transform: uppercase;">
+            GET IN TOUCH
+          </span>
+          <h2 style="font-family: var(--font-display); font-size: 2.4rem; font-weight: 900; text-transform: uppercase; margin-top: 0.5rem;">
+            Contact Elsen Keena
+          </h2>
+          <p style="color: var(--text-secondary); max-width: 600px; margin: 0.75rem auto 0;">
+            Have a website project you want built, an opportunity, a streetwear collaboration, or a clothing resell question? Send a message directly or connect via social media.
+          </p>
+        </div>
+
+        <!-- Social Media & Email Links -->
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-prominent); border-radius: 10px; padding: 1.75rem; margin-bottom: 2.5rem;">
+          <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem;">
+            DIRECT CHANNELS &amp; PROFILES
+          </div>
+          <div class="social-links" id="contact-social-links">
+            <a href="mailto:keenaelsen2@gmail.com" class="social-link-badge" id="social-link-email">
+              <span style="font-size:1.1rem;">✉</span>
+              <span>keenaelsen2@gmail.com</span>
+            </a>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="social-link-badge" id="social-link-github">
+              <span style="font-size:1.1rem;">⚡</span>
+              <span>GitHub Profile</span>
+            </a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="social-link-badge" id="social-link-instagram">
+              <span style="font-size:1.1rem;">📸</span>
+              <span>Instagram (@elsenkeena)</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Contact Form Card -->
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-prominent); border-radius: 12px; padding: 2.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+          <h3 style="font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; text-transform: uppercase; margin-bottom: 1.5rem; color: #ffffff;">
+            Send a Direct Message
+          </h3>
+
+          <form id="contact-form" novalidate>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
+              <!-- First Name -->
+              <div class="form-group">
+                <label for="contact-first-name" class="form-label">First Name *</label>
+                <input 
+                  type="text" 
+                  id="contact-first-name" 
+                  name="firstName" 
+                  class="form-input" 
+                  placeholder="e.g. Marcus" 
+                  required 
+                />
+              </div>
+
+              <!-- Last Name -->
+              <div class="form-group">
+                <label for="contact-last-name" class="form-label">Last Name *</label>
+                <input 
+                  type="text" 
+                  id="contact-last-name" 
+                  name="lastName" 
+                  class="form-input" 
+                  placeholder="e.g. Vance" 
+                  required 
+                />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
+              <!-- Email Address -->
+              <div class="form-group">
+                <label for="contact-email" class="form-label">Email Address *</label>
+                <input 
+                  type="email" 
+                  id="contact-email" 
+                  name="email" 
+                  class="form-input" 
+                  placeholder="name@example.com" 
+                  required 
+                />
+              </div>
+
+              <!-- Reason for Contact -->
+              <div class="form-group">
+                <label for="contact-reason" class="form-label">Reason for Contact *</label>
+                <select id="contact-reason" name="reason" class="form-select" required>
+                  <option value="" disabled selected>Select a reason...</option>
+                  <option value="Comment">Comment</option>
+                  <option value="Question">Question</option>
+                  <option value="Partnership">Partnership</option>
+                  <option value="Opportunity">Opportunity</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Message -->
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label for="contact-message" class="form-label">Your Message *</label>
+              <textarea 
+                id="contact-message" 
+                name="message" 
+                class="form-textarea" 
+                rows="5" 
+                placeholder="Write your note, project inquiry, or question for Elsen..." 
+                required
+              ></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+              type="submit" 
+              class="action-btn btn-primary" 
+              id="contact-submit-btn" 
+              style="width: 100%; justify-content: center; padding: 0.95rem; font-size: 0.95rem;"
+            >
+              Send Message to Elsen
+            </button>
+          </form>
+
+          <!-- Feedback Container for Success/Error -->
+          <div id="contact-feedback" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Universal Site Footer -->
+  <footer class="site-footer" id="main-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand" style="color: #ffffff;">ELSEN KEENA</div>
+          <p class="footer-tagline">
+            Grossmont High School student, freelance web developer, and founder of the Lord Knows streetwear brand.
+          </p>
+        </div>
+        <div>
+          <h4 class="footer-heading">REQUIRED PAGES</h4>
+          <ul class="footer-links">
+            <li><a href="/index.html">index.html (Home)</a></li>
+            <li><a href="/media.html">media.html (Media)</a></li>
+            <li><a href="/future.html">future.html (Future)</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-heading">CHOICE &amp; ADMIN</h4>
+          <ul class="footer-links">
+            <li><a href="/collection.html">collection.html (Choice 1)</a></li>
+            <li><a href="/lookbook.html">lookbook.html (Choice 2)</a></li>
+            <li><a href="/admin.html">admin.html (Admin Dashboard)</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-heading">STORAGE &amp; APIS</h4>
+          <ul class="footer-links">
+            <li><a href="/admin.html">View Messages in Admin</a></li>
+            <li><a href="/api/storage" target="_blank">Storage API (JSON)</a></li>
+            <li><a href="/api/countdown" target="_blank">Countdown API</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 Elsen Keena. Grossmont High School Web Development.</div>
+        <div style="color: var(--accent-purple-light);">THEME: BLACK (PRIMARY) &amp; PURPLE (SECONDARY)</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>

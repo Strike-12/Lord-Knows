@@ -1,0 +1,6 @@
+{
+  "name": "Elsen Keena | Lord Knows",
+  "description": "Portfolio and streetwear brand by Grossmont High School student Elsen Keena. Featuring original artwork, media gallery, 2027 countdown, and persistent App Storage contact system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
