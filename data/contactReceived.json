@@ -1,0 +1,37 @@
+[
+  {
+    "id": "contact-1789795445189-m1iavv",
+    "firstName": "Alex",
+    "lastName": "Rivera",
+    "email": "alex@example.com",
+    "reason": "Partnership",
+    "message": "Would love to collaborate on a clothing drop!",
+    "submittedAt": "2026-09-19T05:24:05.189Z",
+    "replied": false,
+    "repliedAt": null
+  },
+  {
+    "id": "contact-1790018822759-7813yd",
+    "recipient": "keenelsen2@gmail.com",
+    "firstName": "Alex",
+    "lastName": "Rivera",
+    "email": "alex@example.com",
+    "reason": "Question",
+    "message": "Testing routing to keenelsen2@gmail.com",
+    "submittedAt": "2026-09-21T19:27:02.759Z",
+    "replied": false,
+    "repliedAt": null
+  },
+  {
+    "id": "contact-1790018853714-0b6pph",
+    "recipient": "keenelsen2@gmail.com",
+    "firstName": "Elie",
+    "lastName": "Keena",
+    "email": "keenaelie2@gmail.com",
+    "reason": "Question",
+    "message": "hey i love your clothes",
+    "submittedAt": "2026-09-21T19:27:33.714Z",
+    "replied": false,
+    "repliedAt": null
+  }
+]
