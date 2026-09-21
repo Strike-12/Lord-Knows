@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initCountdown();
   initAppStorage();
   initPictureUploader();
-  initRealMediaUploader();
   initGalleryControls();
   initLightbox();
   initRSVPForm();
