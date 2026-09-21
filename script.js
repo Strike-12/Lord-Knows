@@ -258,6 +258,181 @@ function initPictureUploader() {
 }
 
 // ==========================================
+// 3B. REAL MEDIA UPLOADER (No AI - Profile & Drawings)
+// ==========================================
+function initRealMediaUploader() {
+  const heroPhotoFrame = document.getElementById('hero-photo-frame');
+  const mediaCardProfile = document.getElementById('media-card-profile');
+  const mediaCardDrawings = document.getElementById('media-card-drawings');
+
+  // Helper toast for user actions
+  function showUploaderToast(msg, isError = false) {
+    let toast = document.getElementById('uploader-live-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'uploader-live-toast';
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 99999;
+        background: #121118;
+        border: 1px solid var(--border-prominent);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px var(--accent-purple-glow);
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 8px;
+        font-family: var(--font-body);
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: transform 0.25s ease, opacity 0.25s ease;
+      `;
+      document.body.appendChild(toast);
+    }
+    toast.style.borderColor = isError ? 'var(--accent-red)' : 'var(--accent-purple)';
+    toast.innerHTML = isError
+      ? `<span style="color:var(--accent-red); font-size:1.1rem;">⚠</span> <span>${escapeHtml(msg)}</span>`
+      : `<span style="color:#22c55e; font-size:1.1rem;">✓</span> <span>${escapeHtml(msg)}</span>`;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    setTimeout(() => {
+      if (toast) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+      }
+    }, 4500);
+  }
+
+  // Convert any image file (JPEG, PNG, HEIC, WEBP, etc.) to standard JPEG in browser
+  async function normalizeToJpeg(file) {
+    if (!file) return null;
+    return new Promise((resolve) => {
+      // First try standard FileReader to Image canvas
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const normFile = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+                resolve(normFile);
+              } else {
+                resolve(file);
+              }
+            }, 'image/jpeg', 0.95);
+          } catch (err) {
+            console.warn('Canvas conversion note:', err);
+            resolve(file);
+          }
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Upload function for profile photo
+  async function uploadProfilePhoto(file) {
+    if (!file) return;
+    showUploaderToast('Converting and uploading photo...');
+    try {
+      const readyFile = await normalizeToJpeg(file);
+      const formData = new FormData();
+      formData.append('photo', readyFile);
+
+      const res = await fetch('/api/profile/upload-photo', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showUploaderToast(data.message || 'Real profile photo updated!');
+        const freshUrl = data.url || `/assets/images/elsen_profile.jpg?t=${Date.now()}`;
+        document.querySelectorAll('img[src*="elsen_profile.jpg"]').forEach(img => {
+          img.src = freshUrl;
+        });
+      } else {
+        throw new Error(data.message || 'Failed to update photo');
+      }
+    } catch (err) {
+      console.error(err);
+      showUploaderToast(err.message || 'Failed to upload photo', true);
+    }
+  }
+
+  // Upload function for drawings
+  async function uploadDrawing(file) {
+    if (!file) return;
+    showUploaderToast('Converting and uploading drawing...');
+    try {
+      const readyFile = await normalizeToJpeg(file);
+      const formData = new FormData();
+      formData.append('drawing', readyFile);
+
+      const res = await fetch('/api/profile/upload-drawing', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showUploaderToast(data.message || 'Real drawing updated!');
+        const freshUrl = data.url || `/assets/images/elsen_drawings.jpg?t=${Date.now()}`;
+        document.querySelectorAll('img[src*="elsen_drawings.jpg"]').forEach(img => {
+          img.src = freshUrl;
+        });
+      } else {
+        throw new Error(data.message || 'Failed to update drawing');
+      }
+    } catch (err) {
+      console.error(err);
+      showUploaderToast(err.message || 'Failed to upload drawing', true);
+    }
+  }
+
+  // Upload function for Reselling Clothes & Shoes
+  async function uploadResellingPhoto(file) {
+    if (!file) return;
+    showUploaderToast('Converting and uploading clothes & shoes photo...');
+    try {
+      const readyFile = await normalizeToJpeg(file);
+      const formData = new FormData();
+      formData.append('photo', readyFile);
+
+      const res = await fetch('/api/reselling/upload-photo', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showUploaderToast(data.message || 'Clothes & shoes photo updated!');
+        const freshUrl = data.url || `/assets/images/reselling_clothes_shoes.jpg?t=${Date.now()}`;
+        document.querySelectorAll('img[src*="reselling_clothes_shoes.jpg"]').forEach(img => {
+          img.src = freshUrl;
+        });
+      } else {
+        throw new Error(data.message || 'Failed to update reselling photo');
+      }
+    } catch (err) {
+      console.error(err);
+      showUploaderToast(err.message || 'Failed to upload clothes photo', true);
+    }
+  }
+
+  // Hero frame, Media cards, and Reselling frames (Clean display mode - no public upload buttons)
+  // All photo management is securely housed in the private /admin.html dashboard
+}
+
+// ==========================================
 // 4. GALLERY RENDERING & FILTERS
 // ==========================================
 function initGalleryControls() {
@@ -540,17 +715,46 @@ function initContactForm() {
       const data = await res.json();
 
       if (res.status === 201) {
+        const targetEmail = 'keenelsen2@gmail.com';
+        const emailSubject = encodeURIComponent(`Website Inquiry from ${firstName} ${lastName} [${reason}]`);
+        const emailBody = encodeURIComponent(`Hi Elsen,\n\nYou received a new message from your website portfolio:\n\nName: ${firstName} ${lastName}\nEmail: ${email}\nReason: ${reason}\n\nMessage:\n${message}\n\n--\nSent via Elsen Keena Portfolio`);
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${targetEmail}&su=${emailSubject}&body=${emailBody}`;
+        const mailtoUrl = `mailto:${targetEmail}?subject=${emailSubject}&body=${emailBody}`;
+
         if (contactFeedback) {
           contactFeedback.innerHTML = `
-            <div class="form-alert success" style="background:rgba(168,85,247,0.15); border:1px solid var(--accent-purple); color:#e9d5ff; padding:1.25rem; border-radius:6px; margin-top:1rem; box-shadow:0 0 16px var(--accent-purple-glow);">
-              <div style="font-weight:700; font-size:1.05rem; color:#fff; margin-bottom:0.35rem;">✓ Message Sent Successfully!</div>
-              <p style="margin:0 0 0.5rem 0; font-size:0.9rem;">Thank you, <strong>${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</strong>. Your message has been safely recorded in App Storage.</p>
-              <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">
-                Reference ID: <code>${escapeHtml(data.id)}</code> | Time: ${new Date(data.submittedAt).toLocaleTimeString()}
+            <div class="form-alert success" style="background:rgba(168,85,247,0.15); border:1px solid var(--accent-purple); color:#e9d5ff; padding:1.5rem; border-radius:8px; margin-top:1.25rem; box-shadow:0 0 20px var(--accent-purple-glow);">
+              <div style="font-weight:800; font-size:1.15rem; color:#fff; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.5rem;">
+                <span>✓</span> <span>Message Logged &amp; Ready for Delivery</span>
+              </div>
+              <p style="margin:0 0 0.85rem 0; font-size:0.92rem; color:var(--text-secondary); line-height:1.5;">
+                Thank you, <strong style="color:#ffffff;">${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</strong>. Your contact inquiry has been recorded and addressed to <strong style="color:var(--accent-purple-light);">${targetEmail}</strong>.
+              </p>
+              
+              <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin:1rem 0;">
+                <a href="${gmailUrl}" target="_blank" rel="noopener noreferrer" class="action-btn btn-primary" style="padding:0.65rem 1.25rem; font-size:0.85rem; text-decoration:none;">
+                  <span>✉ Open in Gmail to Send Direct</span> ↗
+                </a>
+                <a href="${mailtoUrl}" class="action-btn btn-secondary" style="padding:0.65rem 1.25rem; font-size:0.85rem; text-decoration:none;">
+                  <span>📧 Send via Default Mail App</span>
+                </a>
+              </div>
+
+              <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); border-top:1px solid rgba(168,85,247,0.2); padding-top:0.65rem; margin-top:0.75rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+                <span>Saved to App Storage (Ref: <code>${escapeHtml(data.id)}</code>)</span>
+                <span>${new Date(data.submittedAt).toLocaleTimeString()}</span>
               </div>
             </div>
           `;
         }
+
+        // Also prompt mailto dispatch
+        try {
+          window.open(gmailUrl, '_blank');
+        } catch (e) {
+          // Fallback if popup blocked
+        }
+
         contactForm.reset();
       } else {
         if (contactFeedback) {

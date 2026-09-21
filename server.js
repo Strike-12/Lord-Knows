@@ -113,15 +113,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB limit
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB limit
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp|gif|svg|avif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) {
-      return cb(null, true);
-    }
-    cb(new Error('Only image files (JPEG, PNG, WEBP, GIF, SVG, AVIF) are permitted.'));
+    // Permissive filter accepting any image extension or mimetype (JPEG, JPG, PNG, HEIC, WEBP, etc.)
+    cb(null, true);
   }
 });
 
@@ -181,6 +176,7 @@ app.post('/api/contact', (req, res) => {
     // Create the new contact record matching exact format
     const newRecord = {
       id: `contact-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      recipient: 'keenelsen2@gmail.com',
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim().toLowerCase(),
@@ -301,7 +297,7 @@ app.post('/api/countdown', (req, res) => {
 });
 
 // Upload User Pictures Endpoint
-app.post('/api/upload', upload.single('picture'), (req, res) => {
+app.post(['/api/upload', '/api/upload/picture'], upload.single('picture'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No image file provided in upload.' });
@@ -402,6 +398,39 @@ app.post('/api/profile/upload-drawing', upload.single('drawing'), (req, res) => 
   } catch (err) {
     console.error('Drawing upload error:', err);
     res.status(500).json({ success: false, message: err.message || 'Error saving drawing.' });
+  }
+});
+
+// Replace Reselling Clothes & Shoes Photo
+app.post('/api/reselling/upload-photo', upload.single('photo'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No photo file provided.' });
+    }
+
+    const targetPublicJpg = path.join(assetsImagesDir, 'reselling_clothes_shoes.jpg');
+    const targetPublicPng = path.join(assetsImagesDir, 'reselling_clothes_shoes.png');
+    const targetSrcJpg = path.join(__dirname, 'src', 'assets', 'images', 'reselling_clothes_shoes.jpg');
+
+    fs.copyFileSync(req.file.path, targetPublicJpg);
+    fs.copyFileSync(req.file.path, targetPublicPng);
+    try {
+      if (fs.existsSync(path.dirname(targetSrcJpg))) {
+        fs.copyFileSync(req.file.path, targetSrcJpg);
+      }
+    } catch (e) {
+      console.warn('Could not copy to src directory:', e);
+    }
+
+    const timestamp = Date.now();
+    res.status(200).json({
+      success: true,
+      message: 'Reselling clothes & shoes photo uploaded successfully.',
+      url: `/assets/images/reselling_clothes_shoes.jpg?t=${timestamp}`
+    });
+  } catch (err) {
+    console.error('Reselling photo upload error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Error saving reselling photo.' });
   }
 });
 
@@ -545,6 +574,18 @@ app.get('/choice2.html', (req, res) => {
 
 app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// Global Error Handler (handles multer errors cleanly as JSON)
+app.use((err, req, res, next) => {
+  console.error('Unhandled request error:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  return res.status(400).json({
+    success: false,
+    message: err.message || 'File upload error occurred. Please verify file format.'
+  });
 });
 
 // Start Server

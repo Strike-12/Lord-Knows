@@ -8,6 +8,39 @@
   },
   "images": [
     {
+      "id": "img-reselling-01",
+      "title": "Streetwear & Sneaker Reselling Vault",
+      "category": "Fit Pics",
+      "url": "/assets/images/reselling_clothes_shoes.jpg",
+      "thumbnail": "/assets/images/reselling_clothes_shoes.jpg",
+      "caption": "Authentic clothes & shoes inventory: Alo Yoga grey sweatpants, baby pink Lululemon top, Bape graphic tee, Awful Lot of Cough Syrup Scarface tee, and limited hype sneakers on chrome liquid puddle rug.",
+      "uploader": "Elsen Keena",
+      "date": "2026-09-21",
+      "isUserUpload": false
+    },
+    {
+      "id": "img-drawings-01",
+      "title": "Anime Sketchbook Character Studies",
+      "category": "Editorial",
+      "url": "/assets/images/elsen_drawings.jpg",
+      "thumbnail": "/assets/images/elsen_drawings.jpg",
+      "caption": "Hand-drawn sketchbook artwork: Sukuna / Yuji Itadori (虎杖 悠仁), Light Yagami with Death Note (夜神 月), and Obito Uchiha with Sharingan and Rinnegan (うちは オビト).",
+      "uploader": "Elsen Keena",
+      "date": "2026-09-21",
+      "isUserUpload": false
+    },
+    {
+      "id": "img-profile-01",
+      "title": "Elsen Keena",
+      "category": "Editorial",
+      "url": "/assets/images/elsen_profile.jpg",
+      "thumbnail": "/assets/images/elsen_profile.jpg",
+      "caption": "Grossmont High School student, creator, and founder of the Lord Knows streetwear brand.",
+      "uploader": "Elsen Keena",
+      "date": "2026-09-21",
+      "isUserUpload": false
+    },
+    {
       "id": "img-directed-01",
       "title": "DIRECTED BY THE LORD Heavyweight Hoodie",
       "category": "Editorial",

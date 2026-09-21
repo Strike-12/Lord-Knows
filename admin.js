@@ -4,8 +4,54 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  initAdminDashboard();
+  initAdminSecurityGate();
 });
+
+function initAdminSecurityGate() {
+  const overlay = document.getElementById('admin-login-overlay');
+  const dashboard = document.getElementById('admin-dashboard-content');
+  const loginForm = document.getElementById('admin-login-form');
+  const passcodeInput = document.getElementById('admin-passcode-input');
+  const errorEl = document.getElementById('admin-login-error');
+  const logoutBtn = document.getElementById('admin-logout-btn');
+
+  function unlock() {
+    if (overlay) overlay.style.display = 'none';
+    if (dashboard) dashboard.style.display = 'block';
+    initAdminDashboard();
+  }
+
+  // Check existing session
+  if (sessionStorage.getItem('lk_admin_auth') === 'true') {
+    unlock();
+  } else {
+    if (overlay) overlay.style.display = 'flex';
+    if (dashboard) dashboard.style.display = 'none';
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const code = (passcodeInput.value || '').trim().toLowerCase();
+      if (code === '2027' || code === 'elsen' || code === 'lordknows') {
+        sessionStorage.setItem('lk_admin_auth', 'true');
+        if (errorEl) errorEl.style.display = 'none';
+        unlock();
+      } else {
+        if (errorEl) errorEl.style.display = 'block';
+        passcodeInput.value = '';
+        passcodeInput.focus();
+      }
+    });
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem('lk_admin_auth');
+      window.location.reload();
+    });
+  }
+}
 
 async function initAdminDashboard() {
   loadAdminStatsAndData();
@@ -13,6 +59,7 @@ async function initAdminDashboard() {
   initCountdownConfigForm();
   initAdminUploadForm();
   initProductAddForm();
+  initAdminOfficialPhotoReplacers();
 }
 
 async function loadAdminStatsAndData() {
@@ -266,4 +313,118 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// Convert any image file (JPEG, PNG, HEIC, WEBP, etc.) to standard JPEG in browser
+async function normalizeToJpeg(file) {
+  if (!file) return null;
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const normFile = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+              resolve(normFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.95);
+        } catch (err) {
+          console.warn('Canvas conversion note:', err);
+          resolve(file);
+        }
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+function initAdminOfficialPhotoReplacers() {
+  const profileInput = document.getElementById('admin-upload-profile-input');
+  const resellingInput = document.getElementById('admin-upload-reselling-input');
+  const drawingInput = document.getElementById('admin-upload-drawing-input');
+  const syncBadge = document.getElementById('admin-photo-sync-badge');
+
+  async function handleUpload(file, endpoint, previewId, successMsg) {
+    if (!file) return;
+    if (syncBadge) {
+      syncBadge.textContent = '⏳ CONVERTING & UPLOADING...';
+      syncBadge.style.background = 'rgba(234, 179, 8, 0.15)';
+      syncBadge.style.color = '#eab308';
+    }
+
+    try {
+      const readyFile = await normalizeToJpeg(file);
+      const formData = new FormData();
+      formData.append(endpoint.includes('drawing') ? 'drawing' : 'photo', readyFile);
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (syncBadge) {
+          syncBadge.textContent = '✓ UPDATED SUCCESSFULLY';
+          syncBadge.style.background = 'rgba(34, 197, 94, 0.15)';
+          syncBadge.style.color = '#22c55e';
+          setTimeout(() => {
+            syncBadge.textContent = '● SYNC READY';
+            syncBadge.style.background = 'rgba(168,85,247,0.15)';
+            syncBadge.style.color = 'var(--accent-purple-light)';
+          }, 3500);
+        }
+        const previewImg = document.getElementById(previewId);
+        if (previewImg && data.url) {
+          previewImg.src = data.url;
+        }
+        alert(successMsg);
+      } else {
+        throw new Error(data.message || 'Upload failed');
+      }
+    } catch (err) {
+      console.error(err);
+      if (syncBadge) {
+        syncBadge.textContent = '✕ UPLOAD FAILED';
+        syncBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+        syncBadge.style.color = '#ef4444';
+      }
+      alert(`Error uploading photo: ${err.message}`);
+    }
+  }
+
+  if (profileInput) {
+    profileInput.addEventListener('change', () => {
+      if (profileInput.files && profileInput.files[0]) {
+        handleUpload(profileInput.files[0], '/api/profile/upload-photo', 'admin-preview-profile', 'Elsen profile photo updated successfully!');
+      }
+    });
+  }
+
+  if (resellingInput) {
+    resellingInput.addEventListener('change', () => {
+      if (resellingInput.files && resellingInput.files[0]) {
+        handleUpload(resellingInput.files[0], '/api/reselling/upload-photo', 'admin-preview-reselling', 'Selling clothes and shoes photo updated successfully!');
+      }
+    });
+  }
+
+  if (drawingInput) {
+    drawingInput.addEventListener('change', () => {
+      if (drawingInput.files && drawingInput.files[0]) {
+        handleUpload(drawingInput.files[0], '/api/profile/upload-drawing', 'admin-preview-drawing', 'Drawing art photo updated successfully!');
+      }
+    });
+  }
 }
