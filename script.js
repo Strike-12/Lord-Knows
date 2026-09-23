@@ -12,6 +12,188 @@ window.LK_STATE = {
   cart: JSON.parse(localStorage.getItem('LK_CART') || '[]')
 };
 
+// Global Media Helpers
+function isVideoMedia(itemOrUrl) {
+  if (!itemOrUrl) return false;
+  if (typeof itemOrUrl === 'object') {
+    if (itemOrUrl.mediaType === 'video' || itemOrUrl.type === 'video' || itemOrUrl.isVideo) return true;
+    itemOrUrl = itemOrUrl.url || itemOrUrl.filename || '';
+  }
+  if (typeof itemOrUrl !== 'string') return false;
+  const cleanUrl = itemOrUrl.split('?')[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogv|ogg|mkv|avi)$/i.test(cleanUrl);
+}
+window.isVideoMedia = isVideoMedia;
+
+function updateSlotMediaElement(targetEl, url, alt = '') {
+  if (!targetEl) return;
+  const isVid = isVideoMedia(url);
+  const parent = (targetEl.tagName === 'IMG' || targetEl.tagName === 'VIDEO') 
+    ? targetEl.parentElement 
+    : targetEl;
+  let current = parent.querySelector('img, video');
+  if (!current && (targetEl.tagName === 'IMG' || targetEl.tagName === 'VIDEO')) {
+    current = targetEl;
+  }
+
+  if (isVid) {
+    if (current && current.tagName === 'VIDEO') {
+      current.src = url;
+      current.load();
+      current.play().catch(() => {});
+    } else {
+      const video = document.createElement('video');
+      video.src = url;
+      video.autoplay = true;
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.controls = true;
+      if (current) {
+        video.id = current.id;
+        video.className = current.className;
+        video.style.cssText = current.style.cssText;
+        parent.replaceChild(video, current);
+      } else {
+        parent.appendChild(video);
+      }
+      video.play().catch(() => {});
+    }
+  } else {
+    if (current && current.tagName === 'IMG') {
+      current.src = url;
+    } else {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = alt || 'Showcase media';
+      if (current) {
+        img.id = current.id;
+        img.className = current.className;
+        img.style.cssText = current.style.cssText;
+        parent.replaceChild(img, current);
+      } else {
+        parent.appendChild(img);
+      }
+    }
+  }
+}
+window.updateSlotMediaElement = updateSlotMediaElement;
+
+// Helper to safely parse server responses, converting HTML error pages (e.g. 413, 502, 503, 404) into friendly error messages
+async function safeParseJsonResponse(res) {
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    try {
+      return await res.json();
+    } catch (e) {
+      // Fall through to text parsing
+    }
+  }
+
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    // Non-JSON response (HTML or plain text)
+  }
+
+  if (!res.ok) {
+    if (res.status === 413) {
+      throw new Error('File exceeds upload limit (max 30MB). Please select a smaller photo or compressed video clip.');
+    }
+    if (res.status === 502 || res.status === 503 || res.status === 504) {
+      throw new Error('Server is currently starting up or busy. Please wait a few seconds and try again.');
+    }
+    if (res.status === 404) {
+      throw new Error('Upload endpoint not found. Please refresh the page.');
+    }
+    const match = text.match(/<title>(.*?)<\/title>/i) || text.match(/<h[12]>(.*?)<\/h[12]>/i) || text.match(/<pre>(.*?)<\/pre>/i);
+    const msg = match ? match[1].replace(/<[^>]*>/g, '').trim() : '';
+    throw new Error(msg || `Server returned error status (${res.status}).`);
+  }
+
+  throw new Error('Received unexpected response format from server.');
+}
+window.safeParseJsonResponse = safeParseJsonResponse;
+
+function validateUploadSize(file, maxMb = 30) {
+  if (!file) return true;
+  const maxBytes = maxMb * 1024 * 1024;
+  if (file.size > maxBytes) {
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    throw new Error(`File is too large (${sizeMb} MB). Maximum allowed upload size is ${maxMb} MB. Please select a smaller video clip or photo.`);
+  }
+  return true;
+}
+window.validateUploadSize = validateUploadSize;
+
+// Global Image Normalizer Utility: Convert any image file to standard JPEG; pass video through as-is
+async function normalizeToJpeg(file) {
+  if (!file) return null;
+  // If it's a video file, pass it directly through without canvas processing
+  if (file.type && file.type.startsWith('video/')) {
+    validateUploadSize(file, 30);
+    return file;
+  }
+  const isVideoExt = /\.(mp4|webm|mov|m4v|ogg|ogv|avi|mkv)$/i.test(file.name || '');
+  if (isVideoExt) {
+    validateUploadSize(file, 30);
+    return file;
+  }
+  validateUploadSize(file, 30);
+  if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
+    return file;
+  }
+  return new Promise((resolve) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const MAX_DIM = 2400;
+            let w = img.naturalWidth || img.width || 800;
+            let h = img.naturalHeight || img.height || 1000;
+            if (w > MAX_DIM || h > MAX_DIM) {
+              if (w > h) {
+                h = Math.round((h * MAX_DIM) / w);
+                w = MAX_DIM;
+              } else {
+                w = Math.round((w * MAX_DIM) / h);
+                h = MAX_DIM;
+              }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const normFile = new File([blob], (file.name || 'photo').replace(/\.[^/.]+$/, "") + '.jpg', { type: 'image/jpeg' });
+                resolve(normFile);
+              } else {
+                resolve(file);
+              }
+            }, 'image/jpeg', 0.92);
+          } catch (err) {
+            console.warn('Canvas conversion note:', err);
+            resolve(file);
+          }
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn('normalizeToJpeg fallback:', err);
+      resolve(file);
+    }
+  });
+}
+window.normalizeToJpeg = normalizeToJpeg;
+
 document.addEventListener('DOMContentLoaded', () => {
   initCountdown();
   initAppStorage();
@@ -22,6 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initContactForm();
   initCart();
   initMobileMenu();
+  initPhotoAreaControls();
+  initBatchCustomOrder();
 });
 
 // ==========================================
@@ -87,10 +271,17 @@ async function initAppStorage() {
   try {
     const res = await fetch('/api/storage');
     if (res.ok) {
-      const { data } = await res.json();
+      const { data } = await safeParseJsonResponse(res);
       if (data) {
         window.LK_STATE.images = data.images || [];
         window.LK_STATE.products = data.products || [];
+        window.LK_STATE.heroProfile = data.heroProfile || null;
+        if (data.heroProfile && data.heroProfile.url) {
+          const heroImg = document.getElementById('hero-student-photo');
+          if (heroImg) {
+            updateSlotMediaElement(heroImg, data.heroProfile.url, 'Elsen Keena - Official Profile');
+          }
+        }
         localStorage.setItem('LK_STORAGE_CACHE', JSON.stringify(data));
         renderGallery();
         renderProducts();
@@ -107,6 +298,13 @@ async function initAppStorage() {
     const data = JSON.parse(cached);
     window.LK_STATE.images = data.images || [];
     window.LK_STATE.products = data.products || [];
+    window.LK_STATE.heroProfile = data.heroProfile || null;
+    if (data.heroProfile && data.heroProfile.url) {
+      const heroImg = document.getElementById('hero-student-photo');
+      if (heroImg) {
+        updateSlotMediaElement(heroImg, data.heroProfile.url, 'Elsen Keena - Official Profile');
+      }
+    }
     renderGallery();
     renderProducts();
   }
@@ -159,15 +357,17 @@ function initPictureUploader() {
   });
 
   function handleFileSelection(file) {
-    if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file (PNG, JPG, WEBP, GIF, SVG).');
+    const isImg = file.type.startsWith('image/');
+    const isVid = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogg|ogv|mkv|avi)$/i.test(file.name);
+    if (!isImg && !isVid) {
+      alert('Please select a valid image or video file (JPG, PNG, WEBP, MP4, MOV, WEBM).');
       return;
     }
     if (previewBox) {
       const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
       previewBox.innerHTML = `
         <div style="display:flex; align-items:center; gap:0.5rem; justify-content:center;">
-          <span>Selected: <strong>${file.name}</strong> (${sizeMb} MB)</span>
+          <span>${isVid ? '🎬 Video' : '📷 Photo'} Selected: <strong>${file.name}</strong> (${sizeMb} MB)</span>
           <button type="button" id="clear-selected-file" style="color:var(--accent-red); font-weight:700; margin-left:0.5rem;">✕ Remove</button>
         </div>
       `;
@@ -184,14 +384,15 @@ function initPictureUploader() {
     e.preventDefault();
     if (!fileInput.files || !fileInput.files[0]) {
       if (statusBox) {
-        statusBox.innerHTML = '<span style="color:var(--accent-amber)">Please select an image file first.</span>';
+        statusBox.innerHTML = '<span style="color:var(--accent-amber)">Please select a photo or video file first.</span>';
       }
       return;
     }
 
     const file = fileInput.files[0];
+    const isVid = isVideoMedia(file);
     const title = document.getElementById('upload-pic-title')?.value || file.name;
-    const category = document.getElementById('upload-pic-category')?.value || 'User Uploads';
+    const category = document.getElementById('upload-pic-category')?.value || (isVid ? 'Campaign' : 'User Uploads');
     const caption = document.getElementById('upload-pic-caption')?.value || '';
     const uploader = document.getElementById('upload-pic-author')?.value || 'Lord Knows Member';
 
@@ -202,27 +403,28 @@ function initPictureUploader() {
     }
 
     if (statusBox) {
-      statusBox.innerHTML = '<span style="color:var(--text-secondary)">Uploading picture...</span>';
+      statusBox.innerHTML = `<span style="color:var(--text-secondary)">Uploading ${isVid ? 'video' : 'picture'}...</span>`;
     }
 
-    const formData = new FormData();
-    formData.append('picture', file);
-    formData.append('title', title);
-    formData.append('category', category);
-    formData.append('caption', caption);
-    formData.append('uploader', uploader);
-
     try {
+      const readyFile = await normalizeToJpeg(file);
+      const formData = new FormData();
+      formData.append('picture', readyFile);
+      formData.append('title', title);
+      formData.append('category', category);
+      formData.append('caption', caption);
+      formData.append('uploader', uploader);
+
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData
       });
 
-      const result = await res.json();
+      const result = await safeParseJsonResponse(res);
       if (res.ok && result.success) {
         // Success
         if (statusBox) {
-          statusBox.innerHTML = '<span style="color:#22c55e">✓ Picture added to App Storage & Gallery!</span>';
+          statusBox.innerHTML = `<span style="color:#22c55e">✓ ${isVid ? 'Video' : 'Picture'} added to App Storage & Gallery!</span>`;
         }
         uploadForm.reset();
         if (previewBox) previewBox.innerHTML = '';
@@ -251,7 +453,7 @@ function initPictureUploader() {
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'UPLOAD PICTURE';
+        submitBtn.textContent = 'UPLOAD MEDIA';
       }
     }
   });
@@ -305,46 +507,11 @@ function initRealMediaUploader() {
     }, 4500);
   }
 
-  // Convert any image file (JPEG, PNG, HEIC, WEBP, etc.) to standard JPEG in browser
-  async function normalizeToJpeg(file) {
-    if (!file) return null;
-    return new Promise((resolve) => {
-      // First try standard FileReader to Image canvas
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth || img.width;
-            canvas.height = img.naturalHeight || img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            canvas.toBlob((blob) => {
-              if (blob) {
-                const normFile = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-                resolve(normFile);
-              } else {
-                resolve(file);
-              }
-            }, 'image/jpeg', 0.95);
-          } catch (err) {
-            console.warn('Canvas conversion note:', err);
-            resolve(file);
-          }
-        };
-        img.onerror = () => resolve(file);
-        img.src = e.target.result;
-      };
-      reader.onerror = () => resolve(file);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // Upload function for profile photo
+  // Upload function for profile photo or video
   async function uploadProfilePhoto(file) {
     if (!file) return;
-    showUploaderToast('Converting and uploading photo...');
+    const isVid = isVideoMedia(file);
+    showUploaderToast(isVid ? 'Uploading profile video...' : 'Optimizing and uploading profile photo...');
     try {
       const readyFile = await normalizeToJpeg(file);
       const formData = new FormData();
@@ -354,13 +521,14 @@ function initRealMediaUploader() {
         method: 'POST',
         body: formData
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (res.ok && data.success) {
-        showUploaderToast(data.message || 'Real profile photo updated!');
-        const freshUrl = data.url || `/assets/images/elsen_profile.jpg?t=${Date.now()}`;
-        document.querySelectorAll('img[src*="elsen_profile.jpg"]').forEach(img => {
-          img.src = freshUrl;
-        });
+        showUploaderToast(data.message || (isVid ? 'Real profile video updated!' : 'Real profile photo updated!'));
+        const freshUrl = data.url || `/assets/images/hero_profile.jpg?t=${Date.now()}`;
+        const heroPhoto = document.getElementById('hero-student-photo');
+        if (heroPhoto) {
+          updateSlotMediaElement(heroPhoto, freshUrl, 'Elsen Keena - Official Profile');
+        }
       } else {
         throw new Error(data.message || 'Failed to update photo');
       }
@@ -370,10 +538,11 @@ function initRealMediaUploader() {
     }
   }
 
-  // Upload function for drawings
+  // Upload function for drawings (photo or video)
   async function uploadDrawing(file) {
     if (!file) return;
-    showUploaderToast('Converting and uploading drawing...');
+    const isVid = isVideoMedia(file);
+    showUploaderToast(isVid ? 'Uploading drawing video...' : 'Optimizing and uploading drawing...');
     try {
       const readyFile = await normalizeToJpeg(file);
       const formData = new FormData();
@@ -383,12 +552,12 @@ function initRealMediaUploader() {
         method: 'POST',
         body: formData
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (res.ok && data.success) {
         showUploaderToast(data.message || 'Real drawing updated!');
         const freshUrl = data.url || `/assets/images/elsen_drawings.jpg?t=${Date.now()}`;
-        document.querySelectorAll('img[src*="elsen_drawings.jpg"]').forEach(img => {
-          img.src = freshUrl;
+        document.querySelectorAll('img[src*="elsen_drawings"], video[src*="elsen_drawings"]').forEach(el => {
+          updateSlotMediaElement(el, freshUrl);
         });
       } else {
         throw new Error(data.message || 'Failed to update drawing');
@@ -402,7 +571,8 @@ function initRealMediaUploader() {
   // Upload function for Reselling Clothes & Shoes
   async function uploadResellingPhoto(file) {
     if (!file) return;
-    showUploaderToast('Converting and uploading clothes & shoes photo...');
+    const isVid = isVideoMedia(file);
+    showUploaderToast(isVid ? 'Uploading clothes & shoes video...' : 'Optimizing and uploading clothes & shoes photo...');
     try {
       const readyFile = await normalizeToJpeg(file);
       const formData = new FormData();
@@ -412,19 +582,19 @@ function initRealMediaUploader() {
         method: 'POST',
         body: formData
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (res.ok && data.success) {
-        showUploaderToast(data.message || 'Clothes & shoes photo updated!');
+        showUploaderToast(data.message || 'Clothes & shoes media updated!');
         const freshUrl = data.url || `/assets/images/reselling_clothes_shoes.jpg?t=${Date.now()}`;
-        document.querySelectorAll('img[src*="reselling_clothes_shoes.jpg"]').forEach(img => {
-          img.src = freshUrl;
+        document.querySelectorAll('img[src*="reselling_clothes_shoes"], video[src*="reselling_clothes_shoes"]').forEach(el => {
+          updateSlotMediaElement(el, freshUrl);
         });
       } else {
         throw new Error(data.message || 'Failed to update reselling photo');
       }
     } catch (err) {
       console.error(err);
-      showUploaderToast(err.message || 'Failed to upload clothes photo', true);
+      showUploaderToast(err.message || 'Failed to upload clothes media', true);
     }
   }
 
@@ -463,19 +633,36 @@ function renderGallery() {
   if (items.length === 0) {
     galleryGrid.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--text-muted); background: var(--bg-surface); border: 1px dashed var(--border-subtle); border-radius: 8px;">
-        <p style="font-size:1.1rem; margin-bottom: 0.5rem; text-transform:uppercase; font-family:var(--font-display);">No pictures in this category yet</p>
-        <p style="font-size:0.9rem;">Upload your own pictures using the box above to see them here immediately!</p>
+        <p style="font-size:1.1rem; margin-bottom: 0.5rem; text-transform:uppercase; font-family:var(--font-display);">No media items in this category yet</p>
+        <p style="font-size:0.9rem;">Upload your own photos and videos using the uploader above to see them here immediately!</p>
       </div>
     `;
     return;
   }
 
-  galleryGrid.innerHTML = items.map(img => `
-    <div class="gallery-item" data-id="${img.id}">
-      <div class="gallery-thumb-container" onclick="openLightbox('${img.id}')">
-        <img src="${img.url}" alt="${img.title}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80'" />
+  galleryGrid.innerHTML = items.map((img, idx) => {
+    const isVid = isVideoMedia(img);
+    return `
+    <div class="gallery-item photo-area-frame ${isVid ? 'gallery-item-video' : ''}" data-id="${img.id}">
+      <div class="photo-area-controls" onclick="event.stopPropagation();">
+        <span class="photo-order-badge">#${idx + 1} ${isVid ? '🎬 VIDEO' : '📷 PHOTO'}</span>
+        <div class="photo-btn-group">
+          <button class="photo-order-btn" onclick="moveGalleryItem('${img.id}', -1)" title="Move earlier in order" ${idx === 0 ? 'disabled' : ''}>◀</button>
+          <button class="photo-order-btn" onclick="moveGalleryItem('${img.id}', 1)" title="Move later in order" ${idx === items.length - 1 ? 'disabled' : ''}>▶</button>
+          <button class="photo-upload-btn" onclick="triggerReplacePhoto('${img.id}')" title="Upload new photo or video for this slot">📷/🎬 Replace</button>
+        </div>
+      </div>
+      <div class="gallery-thumb-container" onclick="openLightbox('${img.id}')" style="position:relative; cursor:pointer;">
+        ${isVid ? `
+          <video src="${img.url}#t=0.001" preload="metadata" muted playsinline style="width:100%; height:100%; object-fit:cover; pointer-events:none;"></video>
+          <div class="video-play-overlay" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); pointer-events:none;">
+            <span style="background:rgba(168,85,247,0.9); color:#ffffff; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.15rem; padding-left:3px; box-shadow:0 0 15px var(--accent-purple-glow);">▶</span>
+          </div>
+        ` : `
+          <img src="${img.url}" alt="${escapeHtml(img.title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80'" />
+        `}
         <span class="gallery-badge ${img.isUserUpload ? 'badge-user' : ''}">
-          ${img.isUserUpload ? '★ USER UPLOAD' : (img.category || 'GALLERY')}
+          ${img.isUserUpload ? (isVid ? '★ USER VIDEO' : '★ USER UPLOAD') : (isVid ? '🎬 VIDEO' : (img.category || 'GALLERY'))}
         </span>
       </div>
       <div class="gallery-info">
@@ -487,8 +674,98 @@ function renderGallery() {
         </div>
       </div>
     </div>
-  `).join('');
+  `;}).join('');
 }
+
+window.moveGalleryItem = async function(id, direction) {
+  const images = window.LK_STATE.images;
+  const currentIndex = images.findIndex(img => img.id === id);
+  if (currentIndex === -1) return;
+
+  const targetIndex = currentIndex + direction;
+  if (targetIndex < 0 || targetIndex >= images.length) return;
+
+  // Swap
+  const [moved] = images.splice(currentIndex, 1);
+  images.splice(targetIndex, 0, moved);
+
+  renderGallery();
+  showOrderToast(`Media item moved to position #${targetIndex + 1}!`);
+
+  try {
+    const orderedIds = images.map(img => img.id);
+    await fetch('/api/storage/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderedIds })
+    });
+  } catch (err) {
+    console.error('Failed to save order to server:', err);
+  }
+};
+
+window.triggerReplacePhoto = function(id) {
+  let fileInput = document.getElementById('global-slot-replace-input');
+  if (!fileInput) {
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'global-slot-replace-input';
+    fileInput.accept = 'image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+  }
+
+  fileInput.onchange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const isVid = isVideoMedia(file);
+    const card = document.querySelector(`.gallery-item[data-id="${id}"]`);
+    let spinner = null;
+    if (card) {
+      spinner = document.createElement('div');
+      spinner.className = 'photo-uploading-spinner';
+      spinner.innerHTML = `<div class="photo-spinner-ring"></div><span>Uploading replacement ${isVid ? 'video' : 'photo'}...</span>`;
+      card.appendChild(spinner);
+    }
+
+    try {
+      const readyFile = await normalizeToJpeg(file);
+      const formData = new FormData();
+      formData.append('photo', readyFile);
+      formData.append('slotId', id);
+
+      const res = await fetch('/api/upload/slot', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await safeParseJsonResponse(res);
+
+      if (data.success) {
+        const target = window.LK_STATE.images.find(img => img.id === id);
+        if (target) {
+          target.url = data.url;
+          target.thumbnail = data.url;
+          target.mediaType = data.mediaType;
+        }
+        renderGallery();
+        showOrderToast(`${isVid ? 'Video' : 'Photo'} successfully replaced in this slot!`);
+      } else {
+        alert(data.message || 'Failed to replace media.');
+      }
+    } catch (err) {
+      console.error('Media replacement error:', err);
+      alert('Network error while uploading media.');
+    } finally {
+      if (spinner && spinner.parentElement) {
+        spinner.remove();
+      }
+      fileInput.value = '';
+    }
+  };
+
+  fileInput.click();
+};
 
 // ==========================================
 // 5. LIGHTBOX MODAL
@@ -516,25 +793,30 @@ window.openLightbox = function(id) {
   const imgData = window.LK_STATE.images.find(img => img.id === id);
   if (!modal || !imgData) return;
 
+  const isVid = isVideoMedia(imgData);
   const content = document.getElementById('lightbox-body');
   if (content) {
     content.innerHTML = `
-      <div style="background:#000; display:flex; justify-content:center; align-items:center; min-height:360px; max-height:65vh; overflow:hidden;">
-        <img src="${imgData.url}" alt="${imgData.title}" style="max-height:65vh; width:auto; object-fit:contain;" />
+      <div style="background:#000; display:flex; justify-content:center; align-items:center; min-height:360px; max-height:65vh; overflow:hidden; position:relative;">
+        ${isVid ? `
+          <video src="${imgData.url}" controls autoplay playsinline style="max-height:65vh; width:100%; object-fit:contain;"></video>
+        ` : `
+          <img src="${imgData.url}" alt="${escapeHtml(imgData.title)}" style="max-height:65vh; width:auto; object-fit:contain;" />
+        `}
       </div>
       <div style="padding: 1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
           <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-amber); text-transform:uppercase;">
-            ${imgData.isUserUpload ? '★ User Upload' : imgData.category}
+            ${imgData.isUserUpload ? (isVid ? '★ User Video' : '★ User Upload') : (isVid ? '🎬 Archival Video' : imgData.category)}
           </span>
-          <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">${imgData.date}</span>
+          <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">${imgData.date || ''}</span>
         </div>
         <h2 style="font-family:var(--font-display); font-size:1.5rem; text-transform:uppercase; margin-bottom:0.5rem;">
           ${escapeHtml(imgData.title)}
         </h2>
-        <p style="color:var(--text-secondary); margin-bottom:1rem;">${escapeHtml(imgData.caption || 'Archival picture representation')}</p>
+        <p style="color:var(--text-secondary); margin-bottom:1rem;">${escapeHtml(imgData.caption || (isVid ? 'Motion video reel representation' : 'Archival picture representation'))}</p>
         <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted); border-top:1px solid var(--border-subtle); padding-top:0.75rem;">
-          Uploaded by: <strong style="color:var(--accent-white);">${escapeHtml(imgData.uploader)}</strong>
+          Uploaded by: <strong style="color:var(--accent-white);">${escapeHtml(imgData.uploader || 'Elsen Keena')}</strong>
         </div>
       </div>
     `;
@@ -545,7 +827,13 @@ window.openLightbox = function(id) {
 
 function closeLightbox() {
   const modal = document.getElementById('lightbox-modal');
-  if (modal) modal.classList.remove('open');
+  if (modal) {
+    const vid = modal.querySelector('video');
+    if (vid) {
+      try { vid.pause(); vid.src = ''; } catch(e){}
+    }
+    modal.classList.remove('open');
+  }
 }
 
 // ==========================================
@@ -618,7 +906,7 @@ function initRSVPForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, phone })
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (rsvpFeedback) {
         rsvpFeedback.innerHTML = `<span style="color:#22c55e">${data.message || 'Confirmed for January 1, 2027 drop!'}</span>`;
       }
@@ -712,7 +1000,7 @@ function initContactForm() {
         body: JSON.stringify({ firstName, lastName, email, reason, message })
       });
 
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
 
       if (res.status === 201) {
         const targetEmail = 'keenelsen2@gmail.com';
@@ -782,3 +1070,519 @@ function initContactForm() {
     }
   });
 }
+
+// ========================================================
+// 10. PHOTO AREA UPLOAD & CUSTOM REORDERING CONTROLS
+// ========================================================
+function showOrderToast(msg) {
+  let toast = document.getElementById('order-notify-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'order-notify-toast';
+    toast.className = 'order-notify-toast';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<span>✓</span> <span>${escapeHtml(msg)}</span>`;
+  toast.classList.add('show');
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// Global helper to bind drag & drop file upload to any photo/video container
+function bindPhotoDropZone(container, onFileSelected) {
+  if (!container) return;
+  ['dragenter', 'dragover'].forEach(eventName => {
+    container.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      container.classList.add('photo-drag-active');
+    });
+  });
+  ['dragleave', 'drop'].forEach(eventName => {
+    container.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      container.classList.remove('photo-drag-active');
+    });
+  });
+  container.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    if (dt && dt.files && dt.files.length > 0) {
+      const file = dt.files[0];
+      const isImg = file.type.startsWith('image/');
+      const isVid = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogg|ogv|mkv|avi)$/i.test(file.name);
+      if (isImg || isVid) {
+        onFileSelected(file);
+      }
+    }
+  });
+}
+
+function initPhotoAreaControls() {
+  // Helper to safely handle slot uploads with normalization and user feedback
+  const uploadToSlot = async (file, slotId, targetImgEl, successMessage, extraUpdateCb) => {
+    if (!file) return;
+    const isVid = isVideoMedia(file);
+    showOrderToast(isVid ? 'Uploading and optimizing video...' : 'Preparing and optimizing photo...', false);
+
+    try {
+      const readyFile = await normalizeToJpeg(file);
+      const formData = new FormData();
+      formData.append('photo', readyFile);
+      formData.append('slotId', slotId);
+
+      const res = await fetch('/api/upload/slot', { method: 'POST', body: formData });
+      const data = await safeParseJsonResponse(res);
+      if (res.ok && data.success) {
+        if (targetImgEl) {
+          updateSlotMediaElement(targetImgEl, data.url);
+        }
+        if (typeof extraUpdateCb === 'function') {
+          extraUpdateCb(data);
+        }
+        showOrderToast(successMessage || (isVid ? 'Video updated successfully!' : 'Photo updated successfully!'));
+      } else {
+        throw new Error(data.message || 'Upload failed');
+      }
+    } catch (err) {
+      console.error('Slot upload error:', err);
+      alert('Upload note: ' + (err.message || 'Could not complete upload.'));
+    }
+  };
+
+  // 0. TOP HOMEPAGE HERO ACTION BAR UPLOAD BUTTON
+  const heroTopActionInput = document.getElementById('hero-top-general-upload-input');
+  if (heroTopActionInput) {
+    heroTopActionInput.accept = 'image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi';
+    heroTopActionInput.addEventListener('change', async (e) => {
+      if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        const heroImg = document.getElementById('hero-student-photo');
+        await uploadToSlot(file, 'hero-profile', heroImg, 'Official profile media updated from hero bar!');
+        heroTopActionInput.value = '';
+      }
+    });
+  }
+
+  // 1. HERO PHOTO FRAME (Official Portrait / Video of Elsen Keena - Slot #1 Profile)
+  const heroFrame = document.getElementById('hero-photo-frame');
+  const heroImg = document.getElementById('hero-student-photo');
+  if (heroFrame && heroImg) {
+    heroFrame.classList.add('photo-area-frame');
+    let fileInput = document.getElementById('hero-photo-file-input');
+    
+    // Ensure controls exist if not already in static HTML
+    let controls = heroFrame.querySelector('.photo-area-controls');
+    if (!controls) {
+      controls = document.createElement('div');
+      controls.className = 'photo-area-controls';
+      controls.style.justifyContent = 'space-between';
+      controls.innerHTML = `
+        <span class="photo-order-badge">Slot #1 Profile</span>
+        <label class="photo-upload-btn" id="btn-hero-photo-upload" for="hero-photo-file-input" style="cursor: pointer; margin: 0;">
+          📷/🎬 Upload Photo or Video
+          <input type="file" id="hero-photo-file-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;" />
+        </label>
+      `;
+      heroFrame.appendChild(controls);
+      fileInput = controls.querySelector('#hero-photo-file-input');
+    }
+
+    if (fileInput) {
+      fileInput.accept = 'image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi';
+    }
+
+    const handleHeroFile = async (file) => {
+      const isVid = isVideoMedia(file);
+      let spinner = document.createElement('div');
+      spinner.className = 'photo-uploading-spinner';
+      spinner.innerHTML = `<div class="photo-spinner-ring"></div><span>Uploading profile ${isVid ? 'video' : 'photo'}...</span>`;
+      heroFrame.appendChild(spinner);
+
+      try {
+        const currentHeroEl = heroFrame.querySelector('img, video') || heroImg;
+        await uploadToSlot(file, 'hero-profile', currentHeroEl, 'Official profile media updated!');
+      } finally {
+        spinner.remove();
+      }
+    };
+
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleHeroFile(e.target.files[0]);
+          fileInput.value = '';
+        }
+      });
+    }
+
+    const uploadLabel = heroFrame.querySelector('#btn-hero-photo-upload');
+    if (uploadLabel && fileInput) {
+      uploadLabel.addEventListener('click', (e) => {
+        if (e.target !== fileInput && !fileInput.offsetParent) {
+          try { fileInput.click(); } catch (err) {}
+        }
+      });
+    }
+
+    bindPhotoDropZone(heroFrame, handleHeroFile);
+  }
+
+  // 1B. SHOWCASE QUICK UPLOAD BUTTON (Featured Media Header)
+  const showcaseQuickInput = document.getElementById('showcase-quick-upload-input');
+  if (showcaseQuickInput) {
+    showcaseQuickInput.accept = 'image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi';
+    showcaseQuickInput.addEventListener('change', async (e) => {
+      if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        const isVid = isVideoMedia(file);
+        await uploadToSlot(file, 'general', null, `${isVid ? 'Video' : 'Photo'} uploaded to collection gallery!`, (data) => {
+          if (window.LK_STATE && Array.isArray(window.LK_STATE.images) && data.image) {
+            window.LK_STATE.images.unshift(data.image);
+            if (typeof renderGallery === 'function') renderGallery();
+          }
+        });
+        showcaseQuickInput.value = '';
+      }
+    });
+  }
+
+  // 2. RESELLING PHOTO/VIDEO FRAME (Sneaker Vault & Clothes)
+  const resellFrame = document.getElementById('reselling-photo-frame');
+  if (resellFrame) {
+    resellFrame.classList.add('photo-area-frame');
+    let fileInput = document.getElementById('resell-photo-file-input');
+
+    let controls = resellFrame.querySelector('.photo-area-controls');
+    if (!controls) {
+      controls = document.createElement('div');
+      controls.className = 'photo-area-controls';
+      controls.style.justifyContent = 'space-between';
+      controls.innerHTML = `
+        <span class="photo-order-badge">Resale Inventory</span>
+        <label class="photo-upload-btn" id="btn-resell-photo-upload" for="resell-photo-file-input" style="cursor: pointer; margin: 0;">
+          📷/🎬 Upload Photo or Video
+          <input type="file" id="resell-photo-file-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;" />
+        </label>
+      `;
+      resellFrame.appendChild(controls);
+      fileInput = controls.querySelector('#resell-photo-file-input');
+    }
+
+    if (fileInput) {
+      fileInput.accept = 'image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi';
+    }
+
+    const handleResellFile = async (file) => {
+      const isVid = isVideoMedia(file);
+      let spinner = document.createElement('div');
+      spinner.className = 'photo-uploading-spinner';
+      spinner.innerHTML = `<div class="photo-spinner-ring"></div><span>Uploading reselling ${isVid ? 'video' : 'photo'}...</span>`;
+      resellFrame.appendChild(spinner);
+
+      try {
+        const currentResellEl = resellFrame.querySelector('img, video') || resellFrame;
+        await uploadToSlot(file, 'reselling', currentResellEl, 'Reselling vault media updated!', (data) => {
+          const resellingCardEl = document.querySelector('#media-card-reselling img, #media-card-reselling video') || document.getElementById('media-card-reselling');
+          if (resellingCardEl) updateSlotMediaElement(resellingCardEl, data.url);
+        });
+      } finally {
+        spinner.remove();
+      }
+    };
+
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleResellFile(e.target.files[0]);
+          fileInput.value = '';
+        }
+      });
+    }
+
+    const resellUploadBtn = resellFrame.querySelector('#btn-resell-photo-upload');
+    if (resellUploadBtn && fileInput) {
+      resellUploadBtn.addEventListener('click', (e) => {
+        if (e.target !== fileInput && !fileInput.offsetParent) {
+          try { fileInput.click(); } catch (err) {}
+        }
+      });
+    }
+
+    bindPhotoDropZone(resellFrame, handleResellFile);
+  }
+
+  // 3. HOMEPAGE SHOWCASE CARDS REORDERING & UPLOAD
+  const showcaseGrid = document.getElementById('homepage-showcase-grid');
+  if (showcaseGrid) {
+    // Restore saved order if available
+    const savedOrderJson = localStorage.getItem('LK_SHOWCASE_ORDER');
+    if (savedOrderJson) {
+      try {
+        const savedOrder = JSON.parse(savedOrderJson);
+        if (Array.isArray(savedOrder)) {
+          savedOrder.forEach(id => {
+            const card = document.getElementById(id);
+            if (card && card.parentElement === showcaseGrid) {
+              showcaseGrid.appendChild(card);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Could not parse saved showcase order:', e);
+      }
+    }
+
+    const updateShowcaseControls = () => {
+      const cards = Array.from(showcaseGrid.children).filter(el => el.classList.contains('gallery-item'));
+      const total = cards.length;
+
+      cards.forEach((card, index) => {
+        card.classList.add('photo-area-frame');
+        card.style.position = 'relative';
+
+        let controls = card.querySelector('.photo-area-controls');
+        if (!controls) {
+          controls = document.createElement('div');
+          controls.className = 'photo-area-controls';
+          card.insertBefore(controls, card.firstChild);
+        }
+
+        const inputId = `slot-file-input-${card.id}-${index}`;
+        controls.innerHTML = `
+          <span class="photo-order-badge">Slot #${index + 1}</span>
+          <div class="photo-btn-group">
+            <button type="button" class="photo-order-btn btn-showcase-left" title="Move card earlier" ${index === 0 ? 'disabled' : ''}>◀</button>
+            <button type="button" class="photo-order-btn btn-showcase-right" title="Move card later" ${index === total - 1 ? 'disabled' : ''}>▶</button>
+            <label class="photo-upload-btn btn-showcase-upload" for="${inputId}" title="Upload photo or video for this card" style="cursor: pointer; margin: 0;">
+              📷/🎬 Upload
+              <input type="file" id="${inputId}" class="slot-file-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;" />
+            </label>
+          </div>
+        `;
+
+        const btnLeft = controls.querySelector('.btn-showcase-left');
+        const btnRight = controls.querySelector('.btn-showcase-right');
+        const labelUpload = controls.querySelector('.btn-showcase-upload');
+        const fileInput = controls.querySelector(`#${inputId}`);
+
+        btnLeft.onclick = (e) => {
+          e.stopPropagation();
+          if (index > 0) {
+            showcaseGrid.insertBefore(card, cards[index - 1]);
+            saveAndRefreshShowcaseOrder();
+            showOrderToast(`Card moved to Slot #${index}!`);
+          }
+        };
+
+        btnRight.onclick = (e) => {
+          e.stopPropagation();
+          if (index < total - 1) {
+            showcaseGrid.insertBefore(cards[index + 1], card);
+            saveAndRefreshShowcaseOrder();
+            showOrderToast(`Card moved to Slot #${index + 2}!`);
+          }
+        };
+
+        const handleCardUpload = async (file) => {
+          const isVid = isVideoMedia(file);
+          let spinner = document.createElement('div');
+          spinner.className = 'photo-uploading-spinner';
+          spinner.innerHTML = `<div class="photo-spinner-ring"></div><span>Uploading ${isVid ? 'video' : 'photo'}...</span>`;
+          card.appendChild(spinner);
+
+          try {
+            const readyFile = await normalizeToJpeg(file);
+            const formData = new FormData();
+            formData.append('photo', readyFile);
+            formData.append('slotId', card.id);
+            const res = await fetch('/api/upload/slot', { method: 'POST', body: formData });
+            const data = await safeParseJsonResponse(res);
+            if (data.success) {
+              const mediaEl = card.querySelector('img, video') || card;
+              updateSlotMediaElement(mediaEl, data.url);
+              // Card and Hero Profile are strictly independent: do not sync or overwrite hero-student-photo
+              showOrderToast(`${isVid ? 'Video' : 'Photo'} uploaded for Slot #${index + 1}!`);
+            } else {
+              alert(data.message || 'Error updating slot media.');
+            }
+          } catch (e) {
+            console.error('Upload error:', e);
+            alert('Upload notice: ' + (e.message || 'Upload failed.'));
+          } finally {
+            spinner.remove();
+          }
+        };
+
+        if (labelUpload && fileInput) {
+          labelUpload.addEventListener('click', (e) => {
+            if (e.target !== fileInput && !fileInput.offsetParent) {
+              try { fileInput.click(); } catch (err) {}
+            }
+          });
+        }
+
+        if (fileInput) {
+          fileInput.onchange = (e) => {
+            if (e.target.files && e.target.files[0]) {
+              handleCardUpload(e.target.files[0]);
+              fileInput.value = '';
+            }
+          };
+        }
+
+        bindPhotoDropZone(card, handleCardUpload);
+      });
+    };
+
+    const saveAndRefreshShowcaseOrder = () => {
+      const currentCards = Array.from(showcaseGrid.children).filter(el => el.classList.contains('gallery-item'));
+      const showcaseOrder = currentCards.map(c => c.id);
+      localStorage.setItem('LK_SHOWCASE_ORDER', JSON.stringify(showcaseOrder));
+      updateShowcaseControls();
+
+      fetch('/api/storage/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showcaseOrder })
+      }).catch(err => console.warn('Could not save showcase order:', err));
+    };
+
+    updateShowcaseControls();
+  }
+}
+
+// 4. CUSTOM SEQUENCE / BATCH UPLOADER (media.html)
+function initBatchCustomOrder() {
+  const fileInput = document.getElementById('batch-order-file-input');
+  const selectBtn = document.getElementById('btn-select-batch-photos');
+  const uploadBtn = document.getElementById('btn-upload-batch-photos');
+  const countSpan = document.getElementById('batch-count');
+  const queueContainer = document.getElementById('batch-queue-container');
+
+  if (!fileInput || !selectBtn || !uploadBtn || !queueContainer) return;
+
+  fileInput.accept = 'image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi';
+  let queue = []; // array of { file, previewUrl, title, isVideo }
+
+  selectBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', (e) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    selectedFiles.forEach((file) => {
+      const isVid = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogg|ogv|mkv|avi)$/i.test(file.name);
+      queue.push({
+        file,
+        previewUrl: URL.createObjectURL(file),
+        isVideo: isVid,
+        title: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+      });
+    });
+
+    fileInput.value = '';
+    renderQueue();
+  });
+
+  function renderQueue() {
+    if (queue.length === 0) {
+      queueContainer.style.display = 'none';
+      uploadBtn.style.display = 'none';
+      return;
+    }
+
+    queueContainer.style.display = 'grid';
+    uploadBtn.style.display = 'inline-flex';
+    if (countSpan) countSpan.textContent = queue.length;
+
+    queueContainer.innerHTML = queue.map((item, idx) => `
+      <div class="queue-card">
+        <div style="position:relative; aspect-ratio:1; background:#000; overflow:hidden; border-radius:6px;">
+          ${item.isVideo ? `
+            <video src="${item.previewUrl}" muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+            <span style="position:absolute; bottom:4px; right:4px; font-size:0.65rem; background:rgba(0,0,0,0.85); color:var(--accent-amber); padding:2px 5px; border-radius:4px; font-family:var(--font-mono);">🎬 VIDEO</span>
+          ` : `
+            <img src="${item.previewUrl}" alt="${escapeHtml(item.title)}" class="queue-card-thumb" style="width:100%; height:100%; object-fit:cover;" />
+          `}
+          <span class="photo-order-badge" style="position:absolute; top:6px; left:6px;">Order #${idx + 1}</span>
+        </div>
+        <div class="queue-card-controls">
+          <div style="font-size:0.75rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:90px;" title="${escapeHtml(item.title)}">
+            ${escapeHtml(item.title)}
+          </div>
+          <div class="photo-btn-group" style="padding:2px;">
+            <button class="photo-order-btn" style="width:24px; height:24px;" onclick="moveQueueItem(${idx}, -1)" title="Move left in sequence" ${idx === 0 ? 'disabled' : ''}>◀</button>
+            <button class="photo-order-btn" style="width:24px; height:24px;" onclick="moveQueueItem(${idx}, 1)" title="Move right in sequence" ${idx === queue.length - 1 ? 'disabled' : ''}>▶</button>
+            <button class="photo-order-btn" style="width:24px; height:24px; color:#ef4444;" onclick="removeQueueItem(${idx})" title="Remove">✕</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.moveQueueItem = (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= queue.length) return;
+    const [item] = queue.splice(index, 1);
+    queue.splice(target, 0, item);
+    renderQueue();
+  };
+
+  window.removeQueueItem = (index) => {
+    URL.revokeObjectURL(queue[index].previewUrl);
+    queue.splice(index, 1);
+    renderQueue();
+  };
+
+  uploadBtn.addEventListener('click', async () => {
+    if (queue.length === 0) return;
+
+    uploadBtn.disabled = true;
+    const originalText = uploadBtn.innerHTML;
+    uploadBtn.innerHTML = '<span>⚡ Uploading Media Sequence...</span>';
+
+    try {
+      const formData = new FormData();
+      queue.forEach((item) => {
+        formData.append('photos', item.file);
+        formData.append('titles', item.title);
+        formData.append('categories', item.isVideo ? 'Campaign' : 'User Uploads');
+        formData.append('captions', `Uploaded in custom sequence.`);
+      });
+
+      const res = await fetch('/api/upload/batch', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await safeParseJsonResponse(res);
+
+      if (data.success) {
+        queue.forEach(i => URL.revokeObjectURL(i.previewUrl));
+        queue = [];
+        renderQueue();
+
+        if (Array.isArray(data.images)) {
+          window.LK_STATE.images = data.images;
+          renderGallery();
+        }
+
+        showOrderToast(`${data.newImages ? data.newImages.length : 'All'} media files (photos & videos) uploaded in your custom order!`);
+        
+        const galleryEl = document.getElementById('media-gallery-grid');
+        if (galleryEl) {
+          galleryEl.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        alert(data.message || 'Batch upload failed.');
+      }
+    } catch (err) {
+      console.error('Batch upload error:', err);
+      alert('Error uploading media in batch.');
+    } finally {
+      uploadBtn.disabled = false;
+      uploadBtn.innerHTML = originalText;
+    }
+  });
+}
+

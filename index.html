@@ -62,7 +62,7 @@
           <p class="hero-lead" style="font-size: 1.15rem; color: var(--text-secondary); max-width: 580px; margin-bottom: 2rem;">
             Grossmont High School student, emerging web developer, freelance creator, sports athlete, and streetwear clothing designer &amp; reseller. Turning raw passion for design, anime illustration, and coding into real-world businesses.
           </p>
-          <div class="hero-actions" style="display:flex; gap:1rem; flex-wrap:wrap;">
+          <div class="hero-actions" style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
             <a href="#biography-section" class="action-btn btn-primary" id="hero-bio-btn" style="padding: 0.85rem 1.85rem;">
               Read My Story
             </a>
@@ -72,14 +72,25 @@
             <a href="/collection.html" class="action-btn btn-outline" id="hero-collection-btn" style="padding: 0.85rem 1.85rem;">
               Streetwear Vault →
             </a>
+            <label class="action-btn" id="hero-top-upload-btn" for="hero-top-general-upload-input" style="padding: 0.85rem 1.75rem; background: rgba(168, 85, 247, 0.22); border: 1px solid var(--accent-purple); color: var(--accent-purple-light); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; border-radius: 6px; transition: all 0.2s ease;">
+              <span>📷/🎬 Upload Photo or Video</span>
+              <input type="file" id="hero-top-general-upload-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;" />
+            </label>
           </div>
         </div>
 
         <!-- Prominent Photo Above the Fold: Elsen Keena Official Profile -->
-        <div class="hero-image-frame" id="hero-photo-frame" style="position: relative; border: 1px solid var(--border-prominent); border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 25px var(--accent-purple-glow);">
+        <div class="hero-image-frame photo-area-frame" id="hero-photo-frame" style="position: relative; border: 1px solid var(--border-prominent); border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 25px var(--accent-purple-glow);">
+          <div class="photo-area-controls" style="justify-content: space-between;">
+            <span class="photo-order-badge">Slot #1 Profile</span>
+            <label class="photo-upload-btn" id="btn-hero-photo-upload" for="hero-photo-file-input" style="cursor: pointer; margin: 0;">
+              📷/🎬 Upload Photo or Video
+              <input type="file" id="hero-photo-file-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;" />
+            </label>
+          </div>
           <img 
             id="hero-student-photo" 
-            src="/assets/images/elsen_profile.jpg" 
+            src="/assets/images/hero_profile.jpg" 
             alt="Elsen Keena - Grossmont High School Student & Web Developer" 
             style="width: 100%; height: 100%; object-fit: cover; aspect-ratio: 4/5; display: block;"
           />
@@ -133,16 +144,22 @@
               Explore original anime sketchbook drawings, dark aesthetic profile photography, and exclusive Lord Knows streetwear design pieces.
             </p>
           </div>
-          <a href="/media.html" class="action-btn btn-secondary" id="view-all-media-btn">
-            View All Media &amp; Upload Pics →
-          </a>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <label class="action-btn btn-secondary" id="showcase-quick-upload-btn" for="showcase-quick-upload-input" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 0.75rem 1.4rem;">
+              <span>📷/🎬 Quick Upload Media</span>
+              <input type="file" id="showcase-quick-upload-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;" />
+            </label>
+            <a href="/media.html" class="action-btn btn-outline" id="view-all-media-btn" style="padding: 0.75rem 1.4rem;">
+              View All Media →
+            </a>
+          </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.75rem;">
+        <div id="homepage-showcase-grid" class="showcase-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.75rem;">
           <!-- Media Item 1: Student Profile with Dark Vibe -->
           <div class="gallery-item" id="media-card-profile" style="overflow: hidden; border-radius: 10px; border: 1px solid var(--border-prominent); background: var(--bg-surface);">
             <div style="aspect-ratio: 4/5; overflow: hidden; background: #000;">
-              <img src="/assets/images/elsen_profile.jpg" alt="Elsen Keena - Official Portrait" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" />
+              <img src="/assets/images/featured_media_portrait.jpg" alt="Elsen Keena - Official Portrait" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;" />
             </div>
             <div style="padding: 1.25rem;">
               <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent-purple-light); text-transform: uppercase;">PORTFOLIO PROFILE</span>
@@ -216,7 +233,14 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;" class="reselling-grid">
           <!-- Big Visual of Clothes & Shoes Spread -->
-          <div id="reselling-photo-frame" style="position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-prominent); box-shadow: 0 12px 35px rgba(0,0,0,0.5); background: #000;">
+          <div class="photo-area-frame" id="reselling-photo-frame" style="position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-prominent); box-shadow: 0 12px 35px rgba(0,0,0,0.5); background: #000;">
+            <div class="photo-area-controls" style="justify-content: space-between;">
+              <span class="photo-order-badge">Resale Inventory</span>
+              <label class="photo-upload-btn" id="btn-resell-photo-upload" for="resell-photo-file-input" style="cursor: pointer; margin: 0;">
+                📷/🎬 Upload Photo or Video
+                <input type="file" id="resell-photo-file-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;" />
+              </label>
+            </div>
             <img 
               src="/assets/images/reselling_clothes_shoes.jpg" 
               alt="Selling Clothes and Shoes - Alo, Bape, Cough Syrup, Sneakers" 

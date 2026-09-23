@@ -6,17 +6,24 @@
     "description": "Archival heavyweight 500 GSM Portuguese terry, thick raised 3D puff print, dense chain embroidery, genuine crystal rhinestones, and hand-distressed vintage washes. Zero polyester. Directed by the Lord. January 1, 2027.",
     "status": "Ticking Down"
   },
+  "heroProfile": {
+    "url": "/assets/images/hero_profile.jpg?t=1790186365698",
+    "mediaType": "image",
+    "updatedAt": "2026-09-23T17:59:25.699Z"
+  },
   "images": [
     {
       "id": "img-reselling-01",
       "title": "Streetwear & Sneaker Reselling Vault",
       "category": "Fit Pics",
-      "url": "/assets/images/reselling_clothes_shoes.jpg",
-      "thumbnail": "/assets/images/reselling_clothes_shoes.jpg",
+      "url": "/assets/images/reselling_clothes_shoes.jpg?t=1790185486228",
+      "thumbnail": "/assets/images/reselling_clothes_shoes.jpg?t=1790185486228",
       "caption": "Authentic clothes & shoes inventory: Alo Yoga grey sweatpants, baby pink Lululemon top, Bape graphic tee, Awful Lot of Cough Syrup Scarface tee, and limited hype sneakers on chrome liquid puddle rug.",
       "uploader": "Elsen Keena",
       "date": "2026-09-21",
-      "isUserUpload": false
+      "isUserUpload": false,
+      "filename": "user-1790185466054-85cf68d3-9ff0-4f71-81d2-e15a6ae88c52.jpg",
+      "mediaType": "image"
     },
     {
       "id": "img-drawings-01",
@@ -33,12 +40,13 @@
       "id": "img-profile-01",
       "title": "Elsen Keena",
       "category": "Editorial",
-      "url": "/assets/images/elsen_profile.jpg",
-      "thumbnail": "/assets/images/elsen_profile.jpg",
+      "url": "/assets/images/featured_media_portrait.jpg?t=1790186374884",
+      "thumbnail": "/assets/images/featured_media_portrait.jpg?t=1790186374884",
       "caption": "Grossmont High School student, creator, and founder of the Lord Knows streetwear brand.",
       "uploader": "Elsen Keena",
       "date": "2026-09-21",
-      "isUserUpload": false
+      "isUserUpload": false,
+      "mediaType": "image"
     },
     {
       "id": "img-directed-01",
@@ -158,7 +166,13 @@
       "price": 60,
       "category": "Hoodies",
       "color": "Obsidian Black",
-      "sizes": ["S", "M", "L", "XL", "XXL"],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
       "image": "/assets/images/directed_lord_hoodie_puff_1789793017180.jpg",
       "description": "100% dense 500 GSM Portuguese French terry cotton. Back features heavy 3D raised matte puff print 'DIRECTED BY THE LORD' in a sharp barbed-wire frame; front features 'STAY HUMBLE - LORD KNOWS'. Ribbed hems, drop-shoulder cut, zero polyester.",
       "stock": 18,
@@ -170,7 +184,12 @@
       "price": 60,
       "category": "Hoodies",
       "color": "Heather Ash Grey",
-      "sizes": ["S", "M", "L", "XL"],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
       "image": "/assets/images/ice_cross_rhinestone_zip_1789793048061.jpg",
       "description": "500 GSM loopback cotton fleece with custom silver YKK zipper. Glistening clear diamond crystal rhinestones form cursive 'LK' on left chest and an ornate gothic cross on the back.",
       "stock": 14,
@@ -182,7 +201,12 @@
       "price": 60,
       "category": "Hoodies",
       "color": "Washed Black",
-      "sizes": ["S", "M", "L", "XL"],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
       "image": "/assets/images/sapphire_zip_rhinestone_1789793059578.jpg",
       "description": "Deep royal sapphire blue crystal rhinestones and 3D puff embroidery on pitch-washed 500 GSM French terry. Left chest cursive 'LK' and large back gothic cross.",
       "stock": 12,
@@ -194,7 +218,12 @@
       "price": 50,
       "category": "Tees",
       "color": "Vintage Charcoal",
-      "sizes": ["S", "M", "L", "XL"],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
       "image": "/assets/images/triple_cross_puff_tee_1789793027777.jpg",
       "description": "300 GSM dense combed cotton with authentic mineral stone wash. Front arched 3D puff gothic 'LORD KNOWS' calligraphy, back triple gothic crosses († † †) with cursive 'LK'.",
       "stock": 35,
@@ -206,7 +235,12 @@
       "price": 50,
       "category": "Tees",
       "color": "Ash Grey Vintage Wash",
-      "sizes": ["S", "M", "L", "XL"],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
       "image": "/assets/images/thorns_god_puff_tee_1789793038407.jpg",
       "description": "Heavy 300 GSM dry-hand cotton jersey. 3D puff 'LORD KNOWS' on front chest. Back displays circular Crown of Thorns graphic with thick raised puff 'GOD BEFORE ALL' lettering.",
       "stock": 28,
@@ -218,7 +252,12 @@
       "price": 50,
       "category": "Pants",
       "color": "Obsidian Black",
-      "sizes": ["S", "M", "L", "XL"],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
       "image": "/assets/images/sapphire_flare_sweatpants_1789793069428.jpg",
       "description": "Heavyweight 480 GSM cotton fleece with flared wide-leg cut. Chunky white cotton rope drawstrings with raw knotted ends and vivid sapphire blue rhinestone cursive: 'Lord' down one leg, 'Knows' down the other.",
       "stock": 16,
@@ -230,7 +269,12 @@
       "price": 55,
       "category": "Shorts",
       "color": "Charcoal Black",
-      "sizes": ["S", "M", "L", "XL"],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
       "image": "/assets/images/stardust_fleece_shorts_1789793085648.jpg",
       "description": "Raw frayed hem 450 GSM cotton fleece shorts. Thick white rope drawstrings with metal aglets, scattered crystal rhinestone stardust, and raised 3D puff gothic cursive 'Lord Knows' on the right thigh.",
       "stock": 22,
@@ -242,7 +286,12 @@
       "price": 50,
       "category": "Pants",
       "color": "Pitch Black",
-      "sizes": ["30", "32", "34", "36"],
+      "sizes": [
+        "30",
+        "32",
+        "34",
+        "36"
+      ],
       "image": "/assets/images/heavy_carpenter_pants_1789792706478.jpg",
       "description": "Heavyweight structured 14oz 100% cotton duck canvas work pants. Silver metal rivets reinforcing deep square rear utility pockets, hammer loop, double-knee panels, and tonal cursive 'LK' embroidery.",
       "stock": 15,
@@ -254,7 +303,12 @@
       "price": 65,
       "category": "Knitwear",
       "color": "Charcoal Black",
-      "sizes": ["S", "M", "L", "XL"],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
       "image": "/assets/images/heavy_boucle_sweater_1789792719688.jpg",
       "description": "Chunky wool-cotton oversized crewneck. 3D tactile bouclé cursive chain-stitch 'Lord Knows' across chest. Extra-thick ribbed collar and hem.",
       "stock": 10,
@@ -275,5 +329,11 @@
     "theme": "Sacred Streetwear Brutalism",
     "appStorageVersion": "3.0.0",
     "storageLocation": "Server-side JSON & Uploads Directory"
-  }
+  },
+  "showcaseOrder": [
+    "media-card-profile",
+    "media-card-drawings",
+    "media-card-reselling",
+    "media-card-streetwear"
+  ]
 }

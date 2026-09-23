@@ -1029,3 +1029,226 @@ img, video {
     text-align: center;
   }
 }
+
+/* ========================================================
+   PHOTO AREA UPLOAD & ORDER CONTROLS (CUSTOM REORDERING)
+   ======================================================== */
+.photo-area-frame {
+  position: relative !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.photo-area-frame:hover {
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 20px var(--accent-purple-glow) !important;
+}
+
+.photo-area-controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.photo-order-badge {
+  background: rgba(9, 9, 11, 0.92);
+  border: 1px solid var(--border-prominent);
+  color: var(--accent-purple-light);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+  backdrop-filter: blur(8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.photo-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(9, 9, 11, 0.92);
+  padding: 3px 5px;
+  border-radius: 6px;
+  border: 1px solid var(--border-prominent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.photo-order-btn {
+  background: #191624;
+  color: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.photo-order-btn:hover:not(:disabled) {
+  background: var(--accent-purple);
+  color: #ffffff;
+  border-color: var(--accent-purple-light);
+  transform: translateY(-1px);
+}
+
+.photo-order-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.photo-upload-btn {
+  background: rgba(168, 85, 247, 0.2);
+  color: var(--accent-purple-light);
+  border: 1px solid var(--accent-purple);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.photo-upload-btn:hover {
+  background: var(--accent-purple);
+  color: #ffffff;
+  box-shadow: 0 0 16px var(--accent-purple-glow);
+  transform: translateY(-1px);
+}
+
+.photo-drag-active {
+  border: 2px dashed var(--accent-purple) !important;
+  box-shadow: 0 0 25px var(--accent-purple-glow) !important;
+}
+
+.photo-uploading-spinner {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 9, 11, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 20;
+  color: var(--accent-purple-light);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  backdrop-filter: blur(6px);
+}
+
+.photo-spinner-ring {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(168, 85, 247, 0.2);
+  border-top-color: var(--accent-purple);
+  border-radius: 50%;
+  animation: photoSpin 0.8s linear infinite;
+}
+
+@keyframes photoSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Custom Order Upload Bar / Manager */
+.custom-order-manager {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-prominent);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+
+.custom-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.custom-order-queue {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.queue-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.queue-card:hover {
+  border-color: var(--accent-purple);
+}
+
+.queue-card-thumb {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  display: block;
+}
+
+.queue-card-controls {
+  padding: 0.6rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-surface);
+}
+
+.order-notify-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #0e0d14;
+  border: 1px solid var(--accent-purple);
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 35px rgba(0,0,0,0.8), 0 0 20px var(--accent-purple-glow);
+  z-index: 9999;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.order-notify-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+

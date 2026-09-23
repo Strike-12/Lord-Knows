@@ -196,7 +196,7 @@ function initCountdownConfigForm() {
           description
         })
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (res.ok) {
         if (statusBox) statusBox.innerHTML = '<span style="color:#22c55e">✓ January 1, 2027 Countdown updated successfully in App Storage!</span>';
         loadAdminStatsAndData();
@@ -215,13 +215,15 @@ function initAdminUploadForm() {
     e.preventDefault();
     const fileInput = document.getElementById('admin-upload-file');
     if (!fileInput.files || !fileInput.files[0]) {
-      alert('Please select an image file first.');
+      alert('Please select an image or video file first.');
       return;
     }
 
+    const file = fileInput.files[0];
+    const readyFile = await normalizeToJpeg(file);
     const formData = new FormData();
-    formData.append('picture', fileInput.files[0]);
-    formData.append('title', document.getElementById('admin-upload-title').value || fileInput.files[0].name);
+    formData.append('picture', readyFile);
+    formData.append('title', document.getElementById('admin-upload-title').value || file.name);
     formData.append('category', document.getElementById('admin-upload-category').value);
     formData.append('caption', document.getElementById('admin-upload-caption').value || '');
     formData.append('uploader', 'Admin Dashboard');
@@ -231,9 +233,9 @@ function initAdminUploadForm() {
         method: 'POST',
         body: formData
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (res.ok) {
-        alert('Image successfully uploaded and added to App Storage!');
+        alert('Media successfully uploaded and added to App Storage!');
         form.reset();
         loadAdminStatsAndData();
       } else {
@@ -315,9 +317,64 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-// Convert any image file (JPEG, PNG, HEIC, WEBP, etc.) to standard JPEG in browser
+// Helper to safely parse server responses, converting HTML error pages (e.g. 413, 502, 503, 404) into friendly error messages
+async function safeParseJsonResponse(res) {
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    try {
+      return await res.json();
+    } catch (e) {}
+  }
+
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {}
+
+  if (!res.ok) {
+    if (res.status === 413) {
+      throw new Error('File exceeds upload limit (max 30MB). Please select a smaller photo or compressed video clip.');
+    }
+    if (res.status === 502 || res.status === 503 || res.status === 504) {
+      throw new Error('Server is currently starting up or busy. Please wait a few seconds and try again.');
+    }
+    if (res.status === 404) {
+      throw new Error('Upload endpoint not found. Please refresh the page.');
+    }
+    const match = text.match(/<title>(.*?)<\/title>/i) || text.match(/<h[12]>(.*?)<\/h[12]>/i) || text.match(/<pre>(.*?)<\/pre>/i);
+    const msg = match ? match[1].replace(/<[^>]*>/g, '').trim() : '';
+    throw new Error(msg || `Server returned error status (${res.status}).`);
+  }
+
+  throw new Error('Received unexpected response format from server.');
+}
+
+function validateUploadSize(file, maxMb = 30) {
+  if (!file) return true;
+  const maxBytes = maxMb * 1024 * 1024;
+  if (file.size > maxBytes) {
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    throw new Error(`File is too large (${sizeMb} MB). Maximum allowed upload size is ${maxMb} MB. Please select a smaller video clip or photo.`);
+  }
+  return true;
+}
+
+// Convert any image file to standard JPEG in browser, or return video file directly
 async function normalizeToJpeg(file) {
   if (!file) return null;
+  if (file.type && file.type.startsWith('video/')) {
+    validateUploadSize(file, 30);
+    return file;
+  }
+  const isVideoExt = /\.(mp4|webm|mov|m4v|ogg|ogv|avi|mkv)$/i.test(file.name || '');
+  if (isVideoExt) {
+    validateUploadSize(file, 30);
+    return file;
+  }
+  validateUploadSize(file, 30);
+  if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
+    return file;
+  }
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -325,18 +382,30 @@ async function normalizeToJpeg(file) {
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth || img.width;
-          canvas.height = img.naturalHeight || img.height;
+          const MAX_DIM = 2400;
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if (w > MAX_DIM || h > MAX_DIM) {
+            if (w > h) {
+              h = Math.round((h * MAX_DIM) / w);
+              w = MAX_DIM;
+            } else {
+              w = Math.round((w * MAX_DIM) / h);
+              h = MAX_DIM;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(img, 0, 0, w, h);
           canvas.toBlob((blob) => {
             if (blob) {
-              const normFile = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+              const normFile = new File([blob], (file.name || 'photo').replace(/\.[^/.]+$/, "") + '.jpg', { type: 'image/jpeg' });
               resolve(normFile);
             } else {
               resolve(file);
             }
-          }, 'image/jpeg', 0.95);
+          }, 'image/jpeg', 0.92);
         } catch (err) {
           console.warn('Canvas conversion note:', err);
           resolve(file);
@@ -373,7 +442,7 @@ function initAdminOfficialPhotoReplacers() {
         method: 'POST',
         body: formData
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (res.ok && data.success) {
         if (syncBadge) {
           syncBadge.textContent = '✓ UPDATED SUCCESSFULLY';

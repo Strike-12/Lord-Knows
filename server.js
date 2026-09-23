@@ -98,14 +98,24 @@ function saveStorage(data) {
   }
 }
 
-// Multer Storage Configuration for User Uploaded Pictures
+// Helper to determine if an uploaded file is a video
+function isVideoFile(file) {
+  if (!file) return false;
+  if (file.mimetype && file.mimetype.startsWith('video/')) return true;
+  const ext = path.extname(file.originalname || file.filename || '').toLowerCase();
+  return ['.mp4', '.mov', '.webm', '.m4v', '.ogg', '.ogv', '.avi', '.mkv'].includes(ext);
+}
+
+// Multer Storage Configuration for User Uploaded Pictures & Videos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, assetsImagesDir);
+    const isVid = isVideoFile(file);
+    cb(null, isVid ? assetsVideosDir : assetsImagesDir);
   },
   filename: (req, file, cb) => {
     // Clean original name and timestamp to avoid clashes
-    const cleanExt = path.extname(file.originalname).toLowerCase() || '.jpg';
+    const isVid = isVideoFile(file);
+    const cleanExt = path.extname(file.originalname).toLowerCase() || (isVid ? '.mp4' : '.jpg');
     const baseName = path.basename(file.originalname, cleanExt).replace(/[^a-zA-Z0-9_-]/g, '_');
     cb(null, `user-${Date.now()}-${baseName}${cleanExt}`);
   }
@@ -113,12 +123,42 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB limit
+  limits: { fileSize: 35 * 1024 * 1024 }, // 35 MB limit matching container proxy limits
   fileFilter: (req, file, cb) => {
-    // Permissive filter accepting any image extension or mimetype (JPEG, JPG, PNG, HEIC, WEBP, etc.)
+    // Permissive filter accepting any image or video extension or mimetype
     cb(null, true);
   }
 });
+
+// Helper to safely extract uploaded file from req regardless of field name
+function getUploadedFile(req) {
+  if (req.file) return req.file;
+  if (req.files && Array.isArray(req.files) && req.files.length > 0) return req.files[0];
+  if (req.files && typeof req.files === 'object') {
+    const keys = Object.keys(req.files);
+    for (const k of keys) {
+      if (Array.isArray(req.files[k]) && req.files[k].length > 0) {
+        return req.files[k][0];
+      }
+    }
+  }
+  return null;
+}
+
+// Helper to safely extract multiple files for batch uploads
+function getUploadedFiles(req) {
+  if (req.files && Array.isArray(req.files)) return req.files;
+  if (req.files && typeof req.files === 'object') {
+    const all = [];
+    Object.values(req.files).forEach(val => {
+      if (Array.isArray(val)) all.push(...val);
+      else if (val) all.push(val);
+    });
+    if (all.length > 0) return all;
+  }
+  if (req.file) return [req.file];
+  return [];
+}
 
 // Middleware
 app.use(cors());
@@ -296,27 +336,31 @@ app.post('/api/countdown', (req, res) => {
   res.json({ success: true, message: 'Countdown updated successfully', countdown: storageData.countdown });
 });
 
-// Upload User Pictures Endpoint
-app.post(['/api/upload', '/api/upload/picture'], upload.single('picture'), (req, res) => {
+// Upload User Pictures & Videos Endpoint
+app.post(['/api/upload', '/api/upload/picture', '/api/upload/media'], upload.any(), (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image file provided in upload.' });
+    const file = getUploadedFile(req);
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No media file provided in upload.' });
     }
 
     const { title, category, caption, uploader } = req.body;
     const storageData = getStorage();
+    const isVid = isVideoFile(file);
+    const mediaUrl = isVid ? `/assets/videos/${file.filename}` : `/assets/images/${file.filename}`;
 
-    const newImage = {
+    const newMedia = {
       id: `img-${Date.now()}`,
-      title: title && title.trim() ? title.trim() : path.basename(req.file.originalname),
-      category: category || 'User Uploads',
-      url: `/assets/images/${req.file.filename}`,
-      thumbnail: `/assets/images/${req.file.filename}`,
-      caption: caption && caption.trim() ? caption.trim() : 'User uploaded photograph.',
+      title: title && title.trim() ? title.trim() : path.basename(file.originalname),
+      category: category || (isVid ? 'Campaign' : 'User Uploads'),
+      mediaType: isVid ? 'video' : 'image',
+      url: mediaUrl,
+      thumbnail: mediaUrl,
+      caption: caption && caption.trim() ? caption.trim() : (isVid ? 'User uploaded video clip.' : 'User uploaded photograph.'),
       uploader: uploader && uploader.trim() ? uploader.trim() : 'Community Member',
       date: new Date().toISOString().split('T')[0],
-      filename: req.file.filename,
-      sizeBytes: req.file.size,
+      filename: file.filename,
+      sizeBytes: file.size,
       isUserUpload: true
     };
 
@@ -325,75 +369,107 @@ app.post(['/api/upload', '/api/upload/picture'], upload.single('picture'), (req,
     }
 
     // Add to beginning of images list
-    storageData.images.unshift(newImage);
+    storageData.images.unshift(newMedia);
     saveStorage(storageData);
 
     res.status(201).json({
       success: true,
-      message: 'Picture successfully uploaded and stored in App Storage.',
-      image: newImage
+      message: `${isVid ? 'Video' : 'Picture'} successfully uploaded and stored in App Storage.`,
+      image: newMedia,
+      mediaType: newMedia.mediaType
     });
   } catch (err) {
     console.error('Upload error:', err);
-    res.status(500).json({ success: false, message: err.message || 'Error processing image upload.' });
+    res.status(500).json({ success: false, message: err.message || 'Error processing media upload.' });
   }
 });
 
-// Replace Elsen's Profile Photo
-app.post('/api/profile/upload-photo', upload.single('photo'), (req, res) => {
+// Replace Elsen's Hero Profile Photo / Video (Slot 1 Profile - strictly independent of featured media)
+app.post('/api/profile/upload-photo', upload.any(), (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No photo file provided.' });
+    const file = getUploadedFile(req);
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No photo or video file provided.' });
     }
 
-    const targetPublic = path.join(assetsImagesDir, 'elsen_profile.jpg');
-    const targetSrc = path.join(__dirname, 'src', 'assets', 'images', 'elsen_profile.jpg');
-
-    fs.copyFileSync(req.file.path, targetPublic);
-    try {
-      if (fs.existsSync(path.dirname(targetSrc))) {
-        fs.copyFileSync(req.file.path, targetSrc);
-      }
-    } catch (e) {
-      console.warn('Could not copy to src directory:', e);
-    }
-
+    const isVid = isVideoFile(file);
     const timestamp = Date.now();
+    let finalUrl = isVid ? `/assets/videos/${file.filename}?t=${timestamp}` : `/assets/images/${file.filename}?t=${timestamp}`;
+
+    if (!isVid) {
+      const targetPublic = path.join(assetsImagesDir, 'hero_profile.jpg');
+      const targetSrc = path.join(__dirname, 'src', 'assets', 'images', 'hero_profile.jpg');
+      fs.copyFileSync(file.path, targetPublic);
+      try {
+        if (fs.existsSync(path.dirname(targetSrc))) {
+          fs.copyFileSync(file.path, targetSrc);
+        }
+      } catch (e) {
+        console.warn('Could not copy to src directory:', e);
+      }
+      finalUrl = `/assets/images/hero_profile.jpg?t=${timestamp}`;
+    }
+
+    const storageData = getStorage();
+    storageData.heroProfile = {
+      url: finalUrl,
+      mediaType: isVid ? 'video' : 'image',
+      updatedAt: new Date().toISOString()
+    };
+    saveStorage(storageData);
+
     res.status(200).json({
       success: true,
-      message: 'Real profile photo uploaded successfully.',
-      url: `/assets/images/elsen_profile.jpg?t=${timestamp}`
+      message: `${isVid ? 'Hero profile video' : 'Hero profile photo'} uploaded successfully.`,
+      url: finalUrl,
+      mediaType: isVid ? 'video' : 'image'
     });
   } catch (err) {
     console.error('Profile photo upload error:', err);
-    res.status(500).json({ success: false, message: err.message || 'Error saving profile photo.' });
+    res.status(500).json({ success: false, message: err.message || 'Error saving profile media.' });
   }
 });
 
-// Replace Elsen's Real Hand Drawing
-app.post('/api/profile/upload-drawing', upload.single('drawing'), (req, res) => {
+// Replace Elsen's Real Hand Drawing (Image or Time-lapse Video)
+app.post('/api/profile/upload-drawing', upload.any(), (req, res) => {
   try {
-    if (!req.file) {
+    const file = getUploadedFile(req);
+    if (!file) {
       return res.status(400).json({ success: false, message: 'No drawing file provided.' });
     }
 
-    const targetPublic = path.join(assetsImagesDir, 'elsen_drawings.jpg');
-    const targetSrc = path.join(__dirname, 'src', 'assets', 'images', 'elsen_drawings.jpg');
+    const isVid = isVideoFile(file);
+    const timestamp = Date.now();
+    let finalUrl = isVid ? `/assets/videos/${file.filename}?t=${timestamp}` : `/assets/images/${file.filename}?t=${timestamp}`;
 
-    fs.copyFileSync(req.file.path, targetPublic);
-    try {
-      if (fs.existsSync(path.dirname(targetSrc))) {
-        fs.copyFileSync(req.file.path, targetSrc);
+    if (!isVid) {
+      const targetPublic = path.join(assetsImagesDir, 'elsen_drawings.jpg');
+      const targetSrc = path.join(__dirname, 'src', 'assets', 'images', 'elsen_drawings.jpg');
+      fs.copyFileSync(file.path, targetPublic);
+      try {
+        if (fs.existsSync(path.dirname(targetSrc))) {
+          fs.copyFileSync(file.path, targetSrc);
+        }
+      } catch (e) {
+        console.warn('Could not copy to src directory:', e);
       }
-    } catch (e) {
-      console.warn('Could not copy to src directory:', e);
+      finalUrl = `/assets/images/elsen_drawings.jpg?t=${timestamp}`;
     }
 
-    const timestamp = Date.now();
+    const storageData = getStorage();
+    const drawingImg = storageData.images.find(img => img.id === 'img-drawings-01');
+    if (drawingImg) {
+      drawingImg.url = finalUrl;
+      drawingImg.thumbnail = finalUrl;
+      drawingImg.mediaType = isVid ? 'video' : 'image';
+      saveStorage(storageData);
+    }
+
     res.status(200).json({
       success: true,
-      message: 'Real drawing uploaded successfully.',
-      url: `/assets/images/elsen_drawings.jpg?t=${timestamp}`
+      message: `${isVid ? 'Drawing video' : 'Real drawing'} uploaded successfully.`,
+      url: finalUrl,
+      mediaType: isVid ? 'video' : 'image'
     });
   } catch (err) {
     console.error('Drawing upload error:', err);
@@ -401,36 +477,356 @@ app.post('/api/profile/upload-drawing', upload.single('drawing'), (req, res) => 
   }
 });
 
-// Replace Reselling Clothes & Shoes Photo
-app.post('/api/reselling/upload-photo', upload.single('photo'), (req, res) => {
+// Replace Reselling Clothes & Shoes Photo or Video Reel
+app.post('/api/reselling/upload-photo', upload.any(), (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No photo file provided.' });
+    const file = getUploadedFile(req);
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No media file provided.' });
     }
 
-    const targetPublicJpg = path.join(assetsImagesDir, 'reselling_clothes_shoes.jpg');
-    const targetPublicPng = path.join(assetsImagesDir, 'reselling_clothes_shoes.png');
-    const targetSrcJpg = path.join(__dirname, 'src', 'assets', 'images', 'reselling_clothes_shoes.jpg');
-
-    fs.copyFileSync(req.file.path, targetPublicJpg);
-    fs.copyFileSync(req.file.path, targetPublicPng);
-    try {
-      if (fs.existsSync(path.dirname(targetSrcJpg))) {
-        fs.copyFileSync(req.file.path, targetSrcJpg);
-      }
-    } catch (e) {
-      console.warn('Could not copy to src directory:', e);
-    }
-
+    const isVid = isVideoFile(file);
     const timestamp = Date.now();
+    let finalUrl = isVid ? `/assets/videos/${file.filename}?t=${timestamp}` : `/assets/images/${file.filename}?t=${timestamp}`;
+
+    if (!isVid) {
+      const targetPublicJpg = path.join(assetsImagesDir, 'reselling_clothes_shoes.jpg');
+      const targetPublicPng = path.join(assetsImagesDir, 'reselling_clothes_shoes.png');
+      const targetSrcJpg = path.join(__dirname, 'src', 'assets', 'images', 'reselling_clothes_shoes.jpg');
+      fs.copyFileSync(file.path, targetPublicJpg);
+      fs.copyFileSync(file.path, targetPublicPng);
+      try {
+        if (fs.existsSync(path.dirname(targetSrcJpg))) {
+          fs.copyFileSync(file.path, targetSrcJpg);
+        }
+      } catch (e) {
+        console.warn('Could not copy to src directory:', e);
+      }
+      finalUrl = `/assets/images/reselling_clothes_shoes.jpg?t=${timestamp}`;
+    }
+
+    const storageData = getStorage();
+    const resellImg = storageData.images.find(img => img.id === 'img-reselling-01');
+    if (resellImg) {
+      resellImg.url = finalUrl;
+      resellImg.thumbnail = finalUrl;
+      resellImg.mediaType = isVid ? 'video' : 'image';
+      saveStorage(storageData);
+    }
+
     res.status(200).json({
       success: true,
-      message: 'Reselling clothes & shoes photo uploaded successfully.',
-      url: `/assets/images/reselling_clothes_shoes.jpg?t=${timestamp}`
+      message: `${isVid ? 'Reselling video' : 'Reselling photo'} uploaded successfully.`,
+      url: finalUrl,
+      mediaType: isVid ? 'video' : 'image'
     });
   } catch (err) {
     console.error('Reselling photo upload error:', err);
     res.status(500).json({ success: false, message: err.message || 'Error saving reselling photo.' });
+  }
+});
+
+// Reorder images and showcase slots in App Storage
+app.post('/api/storage/reorder', (req, res) => {
+  try {
+    const { orderedIds, showcaseOrder } = req.body;
+    const storageData = getStorage();
+
+    if (Array.isArray(orderedIds) && orderedIds.length > 0) {
+      const idMap = new Map();
+      storageData.images.forEach(img => idMap.set(img.id, img));
+      const newImages = [];
+      orderedIds.forEach(id => {
+        if (idMap.has(id)) {
+          newImages.push(idMap.get(id));
+          idMap.delete(id);
+        }
+      });
+      // Append any remaining items that were not specified in orderedIds
+      idMap.forEach(img => newImages.push(img));
+      storageData.images = newImages;
+    }
+
+    if (Array.isArray(showcaseOrder)) {
+      storageData.showcaseOrder = showcaseOrder;
+    }
+
+    saveStorage(storageData);
+    res.json({
+      success: true,
+      message: 'Photo order saved successfully.',
+      images: storageData.images,
+      showcaseOrder: storageData.showcaseOrder
+    });
+  } catch (err) {
+    console.error('Reorder error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Error reordering images.' });
+  }
+});
+
+// Direct upload to a specific photo or video slot
+app.post('/api/upload/slot', upload.any(), (req, res) => {
+  try {
+    const file = getUploadedFile(req);
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No media file provided.' });
+    }
+    const slotId = req.body.slotId || req.query.slotId || '';
+    const storageData = getStorage();
+    const timestamp = Date.now();
+    const isVid = isVideoFile(file);
+    const uploadedUrl = isVid ? `/assets/videos/${file.filename}` : `/assets/images/${file.filename}`;
+
+    // Target 1: Slot #1 Hero profile photo/video (Top of Homepage - strictly independent)
+    if (slotId === 'hero-profile' || slotId === 'hero' || slotId === 'slot-1') {
+      let finalUrl = `${uploadedUrl}?t=${timestamp}`;
+      if (!isVid) {
+        const targetPublic = path.join(assetsImagesDir, 'hero_profile.jpg');
+        const targetSrc = path.join(__dirname, 'src', 'assets', 'images', 'hero_profile.jpg');
+        fs.copyFileSync(file.path, targetPublic);
+        try {
+          if (fs.existsSync(path.dirname(targetSrc))) {
+            fs.copyFileSync(file.path, targetSrc);
+          }
+        } catch (e) {
+          console.warn('Could not copy to src directory:', e);
+        }
+        finalUrl = `/assets/images/hero_profile.jpg?t=${timestamp}`;
+      }
+      storageData.heroProfile = {
+        url: finalUrl,
+        mediaType: isVid ? 'video' : 'image',
+        updatedAt: new Date().toISOString()
+      };
+      saveStorage(storageData);
+      return res.json({
+        success: true,
+        message: `${isVid ? 'Hero profile video' : 'Hero profile photo'} updated successfully in Slot #1.`,
+        url: finalUrl,
+        mediaType: isVid ? 'video' : 'image',
+        slotId: 'hero-profile'
+      });
+    }
+
+    // Target 1B: Featured Media Card Profile (Independent from Slot #1)
+    if (slotId === 'media-card-profile' || slotId === 'featured-profile') {
+      let finalUrl = `${uploadedUrl}?t=${timestamp}`;
+      if (!isVid) {
+        const targetPublic = path.join(assetsImagesDir, 'featured_media_portrait.jpg');
+        const targetSrc = path.join(__dirname, 'src', 'assets', 'images', 'featured_media_portrait.jpg');
+        fs.copyFileSync(file.path, targetPublic);
+        try {
+          if (fs.existsSync(path.dirname(targetSrc))) {
+            fs.copyFileSync(file.path, targetSrc);
+          }
+        } catch (e) {
+          console.warn('Could not copy to src directory:', e);
+        }
+        finalUrl = `/assets/images/featured_media_portrait.jpg?t=${timestamp}`;
+      }
+      const profileImg = storageData.images.find(img => img.id === 'img-profile-01');
+      if (profileImg) {
+        profileImg.url = finalUrl;
+        profileImg.thumbnail = finalUrl;
+        profileImg.mediaType = isVid ? 'video' : 'image';
+      }
+      saveStorage(storageData);
+      return res.json({
+        success: true,
+        message: `${isVid ? 'Featured media video' : 'Featured media photo'} updated successfully.`,
+        url: finalUrl,
+        mediaType: isVid ? 'video' : 'image',
+        slotId
+      });
+    }
+
+    // Target 2: Reselling clothes and shoes
+    if (slotId === 'reselling' || slotId === 'media-card-reselling' || slotId === 'resell') {
+      let finalUrl = `${uploadedUrl}?t=${timestamp}`;
+      if (!isVid) {
+        const targetPublicJpg = path.join(assetsImagesDir, 'reselling_clothes_shoes.jpg');
+        const targetSrcJpg = path.join(__dirname, 'src', 'assets', 'images', 'reselling_clothes_shoes.jpg');
+        fs.copyFileSync(file.path, targetPublicJpg);
+        try {
+          if (fs.existsSync(path.dirname(targetSrcJpg))) {
+            fs.copyFileSync(file.path, targetSrcJpg);
+          }
+        } catch (e) {
+          console.warn('Could not copy to src directory:', e);
+        }
+        finalUrl = `/assets/images/reselling_clothes_shoes.jpg?t=${timestamp}`;
+      }
+      const resellImg = storageData.images.find(img => img.id === 'img-reselling-01');
+      if (resellImg) {
+        resellImg.url = finalUrl;
+        resellImg.thumbnail = finalUrl;
+        resellImg.mediaType = isVid ? 'video' : 'image';
+      }
+      saveStorage(storageData);
+      return res.json({
+        success: true,
+        message: `${isVid ? 'Reselling video' : 'Reselling photo'} updated successfully in this slot.`,
+        url: finalUrl,
+        mediaType: isVid ? 'video' : 'image',
+        slotId
+      });
+    }
+
+    // Target 3: Anime Sketchbook Drawing
+    if (slotId === 'drawing' || slotId === 'media-card-drawings' || slotId === 'drawings') {
+      let finalUrl = `${uploadedUrl}?t=${timestamp}`;
+      if (!isVid) {
+        const targetPublic = path.join(assetsImagesDir, 'elsen_drawings.jpg');
+        const targetSrc = path.join(__dirname, 'src', 'assets', 'images', 'elsen_drawings.jpg');
+        fs.copyFileSync(file.path, targetPublic);
+        try {
+          if (fs.existsSync(path.dirname(targetSrc))) {
+            fs.copyFileSync(file.path, targetSrc);
+          }
+        } catch (e) {
+          console.warn('Could not copy to src directory:', e);
+        }
+        finalUrl = `/assets/images/elsen_drawings.jpg?t=${timestamp}`;
+      }
+      const drawingImg = storageData.images.find(img => img.id === 'img-drawings-01');
+      if (drawingImg) {
+        drawingImg.url = finalUrl;
+        drawingImg.thumbnail = finalUrl;
+        drawingImg.mediaType = isVid ? 'video' : 'image';
+      }
+      saveStorage(storageData);
+      return res.json({
+        success: true,
+        message: `${isVid ? 'Drawing video' : 'Drawing photo'} updated successfully in this slot.`,
+        url: finalUrl,
+        mediaType: isVid ? 'video' : 'image',
+        slotId
+      });
+    }
+
+    // Target 4: Streetwear Showcase card
+    if (slotId === 'media-card-streetwear') {
+      let finalUrl = `${uploadedUrl}?t=${timestamp}`;
+      if (!isVid) {
+        const targetPublic = path.join(assetsImagesDir, 'directed_lord_hoodie_puff_1789793017180.jpg');
+        try {
+          fs.copyFileSync(file.path, targetPublic);
+        } catch (e) {}
+        finalUrl = `/assets/images/directed_lord_hoodie_puff_1789793017180.jpg?t=${timestamp}`;
+      }
+      const streetImg = storageData.images.find(img => img.id === 'img-directed-01');
+      if (streetImg) {
+        streetImg.url = finalUrl;
+        streetImg.thumbnail = finalUrl;
+        streetImg.mediaType = isVid ? 'video' : 'image';
+      }
+      saveStorage(storageData);
+      return res.json({
+        success: true,
+        message: `${isVid ? 'Streetwear video' : 'Streetwear photo'} updated successfully in this slot.`,
+        url: finalUrl,
+        mediaType: isVid ? 'video' : 'image',
+        slotId
+      });
+    }
+
+    // Target 5: Specific image in storageData.images
+    const foundIdx = storageData.images.findIndex(img => img.id === slotId);
+    if (foundIdx !== -1) {
+      storageData.images[foundIdx].url = uploadedUrl;
+      storageData.images[foundIdx].thumbnail = uploadedUrl;
+      storageData.images[foundIdx].filename = file.filename;
+      storageData.images[foundIdx].mediaType = isVid ? 'video' : 'image';
+      saveStorage(storageData);
+      return res.json({
+        success: true,
+        message: `${isVid ? 'Video' : 'Image'} replaced successfully.`,
+        url: `${uploadedUrl}?t=${timestamp}`,
+        image: storageData.images[foundIdx],
+        mediaType: isVid ? 'video' : 'image',
+        slotId
+      });
+    }
+
+    // Target 6: Default fallback: add as new media in App Storage
+    const newMedia = {
+      id: `img-${timestamp}`,
+      title: req.body.title || file.originalname,
+      category: req.body.category || (isVid ? 'Campaign' : 'User Uploads'),
+      url: uploadedUrl,
+      thumbnail: uploadedUrl,
+      mediaType: isVid ? 'video' : 'image',
+      caption: req.body.caption || (isVid ? 'Uploaded video reel via Media Area.' : 'Uploaded photo via Photo Area.'),
+      uploader: 'Elsen Keena',
+      date: new Date().toISOString().split('T')[0],
+      filename: file.filename,
+      sizeBytes: file.size,
+      isUserUpload: true
+    };
+    storageData.images.unshift(newMedia);
+    saveStorage(storageData);
+
+    return res.json({
+      success: true,
+      message: `${isVid ? 'Video' : 'Photo'} uploaded successfully.`,
+      url: `${uploadedUrl}?t=${timestamp}`,
+      image: newMedia,
+      mediaType: isVid ? 'video' : 'image',
+      slotId
+    });
+  } catch (err) {
+    console.error('Slot upload error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Error uploading to media slot.' });
+  }
+});
+
+// Batch upload photos and videos in user-specified order
+app.post('/api/upload/batch', upload.any(), (req, res) => {
+  try {
+    const files = getUploadedFiles(req);
+    if (!files || files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No files uploaded.' });
+    }
+    const storageData = getStorage();
+    if (!Array.isArray(storageData.images)) {
+      storageData.images = [];
+    }
+    const titles = req.body.titles ? (Array.isArray(req.body.titles) ? req.body.titles : [req.body.titles]) : [];
+    const categories = req.body.categories ? (Array.isArray(req.body.categories) ? req.body.categories : [req.body.categories]) : [];
+    const captions = req.body.captions ? (Array.isArray(req.body.captions) ? req.body.captions : [req.body.captions]) : [];
+
+    const newImages = req.files.map((file, idx) => {
+      const isVid = isVideoFile(file);
+      const mediaUrl = isVid ? `/assets/videos/${file.filename}` : `/assets/images/${file.filename}`;
+      return {
+        id: `img-${Date.now()}-${idx}`,
+        title: titles[idx] || file.originalname,
+        category: categories[idx] || (isVid ? 'Campaign' : 'User Uploads'),
+        url: mediaUrl,
+        thumbnail: mediaUrl,
+        mediaType: isVid ? 'video' : 'image',
+        caption: captions[idx] || (isVid ? `Uploaded video reel #${idx + 1}` : `Uploaded photo #${idx + 1}`),
+        uploader: 'Elsen Keena',
+        date: new Date().toISOString().split('T')[0],
+        filename: file.filename,
+        sizeBytes: file.size,
+        isUserUpload: true
+      };
+    });
+
+    // Prepend new media items in the order they were submitted
+    storageData.images = [...newImages, ...storageData.images];
+    saveStorage(storageData);
+
+    res.status(201).json({
+      success: true,
+      message: `${newImages.length} items (photos & videos) uploaded in your selected order!`,
+      images: storageData.images,
+      newImages
+    });
+  } catch (err) {
+    console.error('Batch upload error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Error processing batch upload.' });
   }
 });
 
@@ -576,13 +972,28 @@ app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// Global Error Handler (handles multer errors cleanly as JSON)
+// Catch-all for undefined API routes so that /api always returns JSON, never HTML
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `API endpoint not found: ${req.method} ${req.originalUrl}`
+  });
+});
+
+// Global Error Handler (handles multer errors cleanly as JSON, never HTML)
 app.use((err, req, res, next) => {
   console.error('Unhandled request error:', err);
   if (res.headersSent) {
     return next(err);
   }
-  return res.status(400).json({
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      message: 'File size exceeds maximum upload limit (35MB). Please select a smaller photo or compressed video clip.'
+    });
+  }
+  const status = err.status || err.statusCode || (err.name === 'MulterError' ? 400 : 500);
+  return res.status(status).json({
     success: false,
     message: err.message || 'File upload error occurred. Please verify file format.'
   });

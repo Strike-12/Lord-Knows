@@ -171,8 +171,8 @@
                 </div>
               </div>
               <label class="action-btn btn-secondary" style="cursor:pointer; text-align:center; justify-content:center; width:100%; font-size:0.8rem;">
-                <span>📷 Upload Real Photo (JPEG/PNG)</span>
-                <input type="file" id="admin-upload-profile-input" accept="image/*,.jpeg,.jpg,.png,.webp,.gif,.heic,.heif,.jfif" style="display:none;" />
+                <span>📷/🎬 Upload Photo or Video</span>
+                <input type="file" id="admin-upload-profile-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.jpeg,.jpg,.png,.webp,.gif,.heic,.heif,.jfif" style="display:none;" />
               </label>
             </div>
 
@@ -181,13 +181,13 @@
               <div style="display:flex; gap:1rem; align-items:center;">
                 <img id="admin-preview-reselling" src="/assets/images/reselling_clothes_shoes.jpg" style="width:70px; height:85px; object-fit:cover; border-radius:6px; border:1px solid var(--border-prominent);" />
                 <div>
-                  <h4 style="font-size:1rem; font-weight:700; margin:0 0 0.25rem;">Clothes &amp; Shoes Photo</h4>
+                  <h4 style="font-size:1rem; font-weight:700; margin:0 0 0.25rem;">Clothes &amp; Shoes Photo / Video</h4>
                   <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">Flat lay of inventory, sneakers &amp; tees</p>
                 </div>
               </div>
               <label class="action-btn btn-secondary" style="cursor:pointer; text-align:center; justify-content:center; width:100%; font-size:0.8rem;">
-                <span>📦 Upload Clothes Photo (JPEG/PNG)</span>
-                <input type="file" id="admin-upload-reselling-input" accept="image/*,.jpeg,.jpg,.png,.webp,.gif,.heic,.heif,.jfif" style="display:none;" />
+                <span>📦/🎬 Upload Clothes Media</span>
+                <input type="file" id="admin-upload-reselling-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.jpeg,.jpg,.png,.webp,.gif,.heic,.heif,.jfif" style="display:none;" />
               </label>
             </div>
 
@@ -196,13 +196,13 @@
               <div style="display:flex; gap:1rem; align-items:center;">
                 <img id="admin-preview-drawing" src="/assets/images/elsen_drawings.jpg" style="width:70px; height:85px; object-fit:cover; border-radius:6px; border:1px solid var(--border-prominent);" />
                 <div>
-                  <h4 style="font-size:1rem; font-weight:700; margin:0 0 0.25rem;">Real Hand Drawings</h4>
+                  <h4 style="font-size:1rem; font-weight:700; margin:0 0 0.25rem;">Real Hand Drawings / Videos</h4>
                   <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">Anime sketchbook art pieces</p>
                 </div>
               </div>
               <label class="action-btn btn-secondary" style="cursor:pointer; text-align:center; justify-content:center; width:100%; font-size:0.8rem;">
-                <span>✏️ Upload Drawing (JPEG/PNG)</span>
-                <input type="file" id="admin-upload-drawing-input" accept="image/*,.jpeg,.jpg,.png,.webp,.gif,.heic,.heif,.jfif" style="display:none;" />
+                <span>✏️/🎬 Upload Drawing / Video</span>
+                <input type="file" id="admin-upload-drawing-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.jpeg,.jpg,.png,.webp,.gif,.heic,.heif,.jfif" style="display:none;" />
               </label>
             </div>
           </div>
@@ -211,16 +211,16 @@
         <!-- Fast Admin Upload Box -->
         <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:8px; padding:2rem; margin-bottom:2.5rem;">
           <h3 style="font-family:var(--font-display); font-size:1.25rem; font-weight:800; text-transform:uppercase; margin-bottom:0.5rem;">
-            Upload New Picture Directly to App Storage
+            Upload New Media Directly to App Storage
           </h3>
           <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem;">
-            Quickly upload images from your machine to add them to the brand gallery and App Storage.
+            Quickly upload images or videos from your machine to add them to the brand gallery and App Storage.
           </p>
           <form id="admin-quick-upload-form">
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1rem;">
               <div class="form-group">
-                <label class="form-label" for="admin-upload-file">Select Image File *</label>
-                <input type="file" id="admin-upload-file" class="form-input" accept="image/*" required />
+                <label class="form-label" for="admin-upload-file">Select Image or Video File *</label>
+                <input type="file" id="admin-upload-file" class="form-input" accept="image/*,video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi" required />
               </div>
               <div class="form-group">
                 <label class="form-label" for="admin-upload-title">Picture Title *</label>
