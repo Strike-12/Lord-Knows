@@ -335,5 +335,41 @@
     "media-card-drawings",
     "media-card-reselling",
     "media-card-streetwear"
+  ],
+  "motionReels": [
+    {
+      "id": "reel-1790271736596",
+      "tag": "Runway Cut",
+      "title": "Spider man",
+      "description": "Elsen being spider man and swinging around",
+      "videoUrl": "/assets/videos/user-1790271762302-Superhero_jumps_and_lands_on_20260922111529.mp4",
+      "poster": "/assets/images/reel-spiderman-poster.jpg",
+      "date": "2026-09-24",
+      "filename": "user-1790271762302-Superhero_jumps_and_lands_on_20260922111529.mp4",
+      "isUserUpload": true,
+      "updatedAt": "2026-09-24T17:42:42.330Z"
+    },
+    {
+      "id": "reel-sanctuary-01",
+      "tag": "Runway Cut 01",
+      "title": "Sanctuary Heavyweight Silhouette Showcase",
+      "description": "Captured on 16mm film during the private Lisbon textile presentation.",
+      "videoUrl": "/assets/videos/campaign-reel.mp4",
+      "poster": "/assets/images/campaign-reel-poster.jpg",
+      "date": "2026-09-21",
+      "filename": "campaign-reel.mp4",
+      "isUserUpload": false
+    },
+    {
+      "id": "reel-genesis-02",
+      "tag": "2027 Preview",
+      "title": "January 1, 2027 Genesis Teaser Reel",
+      "description": "Audio-visual preview of the ballistic outerwear and archival knitwear drop.",
+      "videoUrl": "/assets/videos/genesis-teaser.mp4",
+      "poster": "/assets/images/genesis-teaser-poster.jpg",
+      "date": "2026-09-21",
+      "filename": "genesis-teaser.mp4",
+      "isUserUpload": false
+    }
   ]
 }

@@ -125,57 +125,134 @@
       </section>
 
       <!-- VIDEO MEDIA SECTION (assets/videos/) -->
-      <section style="margin-top: 5rem; padding-top: 4rem; border-top: 1px solid var(--border-subtle);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem; flex-wrap:wrap; gap:1rem;">
+      <section id="motion-reels-section" style="margin-top: 5rem; padding-top: 4rem; border-top: 1px solid var(--border-subtle);">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem; flex-wrap:wrap; gap:1.25rem;">
           <div>
             <span style="font-family:var(--font-mono); font-size:0.75rem; letter-spacing:0.12em; color:var(--accent-amber); text-transform:uppercase;">
               MOTION REELS // ASSETS/VIDEOS
             </span>
-            <h2 style="font-family:var(--font-display); font-size:2rem; font-weight:900; text-transform:uppercase;">
-              Archival Runway & Campaign Reels
+            <h2 style="font-family:var(--font-display); font-size:2rem; font-weight:900; text-transform:uppercase; margin-top:0.25rem;">
+              Archival Runway &amp; Campaign Reels
             </h2>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.35rem; max-width:600px;">
+              High-definition video reels, runway recordings, and campaign teasers. Add and stream your own custom video files directly into this section.
+            </p>
           </div>
-          <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted);">
-            High-definition 4K streams
-          </span>
+          <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+            <button id="btn-toggle-add-reel" class="action-btn btn-primary" style="padding:0.65rem 1.25rem; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.4rem;">
+              <span>🎬 + Add Your Own Video</span>
+            </button>
+            <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted);">
+              MP4 / WebM / MOV / 4K
+            </span>
+          </div>
         </div>
 
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
-          <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:8px; overflow:hidden;">
-            <div style="aspect-ratio:16/9; background:#000; position:relative; display:flex; align-items:center; justify-content:center;">
-              <video style="width:100%; height:100%; object-fit:cover;" controls poster="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80">
-                <source src="/assets/videos/campaign-reel.mp4" type="video/mp4">
-                Your browser does not support video streaming.
-              </video>
-            </div>
-            <div style="padding: 1.25rem;">
-              <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--accent-amber); text-transform:uppercase;">Runway Cut 01</span>
-              <h3 style="font-family:var(--font-display); font-size:1.15rem; font-weight:800; text-transform:uppercase; margin:0.35rem 0;">
-                Sanctuary Heavyweight Silhouette Showcase
+        <!-- INLINE ADD VIDEO REEL PANEL -->
+        <div id="add-reel-panel" style="display:none; background:var(--bg-surface); border:1px solid var(--accent-purple); border-radius:10px; padding:1.75rem; margin-bottom:2.5rem; box-shadow:0 12px 35px rgba(0,0,0,0.6);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.25rem;">
+            <div>
+              <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-purple-light); text-transform:uppercase; letter-spacing:0.1em;">
+                ASSETS/VIDEOS UPLOADER
+              </span>
+              <h3 style="font-family:var(--font-display); font-size:1.35rem; font-weight:800; text-transform:uppercase; margin-top:0.25rem;">
+                Add Video to Motion Reels
               </h3>
-              <p style="font-size:0.85rem; color:var(--text-secondary);">
-                Captured on 16mm film during the private Lisbon textile presentation.
-              </p>
             </div>
+            <button id="btn-close-add-reel" class="modal-close" style="position:static; width:32px; height:32px; font-size:1rem;" aria-label="Close form">✕</button>
           </div>
 
-          <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:8px; overflow:hidden;">
-            <div style="aspect-ratio:16/9; background:#000; position:relative; display:flex; align-items:center; justify-content:center;">
-              <video style="width:100%; height:100%; object-fit:cover;" controls poster="https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80">
-                <source src="/assets/videos/genesis-teaser.mp4" type="video/mp4">
-                Your browser does not support video streaming.
-              </video>
+          <form id="add-reel-form">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem; margin-bottom:1.25rem;">
+              <div class="form-group">
+                <label class="form-label" for="reel-file-input">Select Video File (.mp4, .mov, .webm, .m4v) *</label>
+                <input type="file" id="reel-file-input" class="form-input" accept="video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi" />
+                <span style="font-size:0.75rem; color:var(--text-muted); margin-top:0.35rem; display:block;">
+                  Videos will be saved directly into <code style="color:var(--accent-purple-light);">assets/videos/</code>
+                </span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="reel-url-input">Or Video URL (Optional fallback)</label>
+                <input type="url" id="reel-url-input" class="form-input" placeholder="https://.../video.mp4" />
+                <span style="font-size:0.75rem; color:var(--text-muted); margin-top:0.35rem; display:block;">
+                  Use if your video is hosted remotely
+                </span>
+              </div>
             </div>
-            <div style="padding: 1.25rem;">
-              <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--accent-amber); text-transform:uppercase;">2027 Preview</span>
-              <h3 style="font-family:var(--font-display); font-size:1.15rem; font-weight:800; text-transform:uppercase; margin:0.35rem 0;">
-                January 1, 2027 Genesis Teaser Reel
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1.25rem; margin-bottom:1.25rem;">
+              <div class="form-group">
+                <label class="form-label" for="reel-title-input">Reel Title *</label>
+                <input type="text" id="reel-title-input" class="form-input" placeholder="e.g. Lisbon Runway Archive Cut" required />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="reel-tag-input">Tag / Cut Badge</label>
+                <input type="text" id="reel-tag-input" class="form-input" placeholder="e.g. Runway Cut 02, Campaign Reel, 2027 Preview" value="Runway Cut" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="reel-poster-input">Poster Image URL (Optional)</label>
+                <input type="url" id="reel-poster-input" class="form-input" placeholder="https://.../poster.jpg" />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:1.5rem;">
+              <label class="form-label" for="reel-desc-input">Description / Notes</label>
+              <textarea id="reel-desc-input" class="form-textarea" rows="2" placeholder="Description of the video reel, silhouette, filming details..."></textarea>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:0.75rem; align-items:center;">
+              <button type="button" id="btn-cancel-add-reel" class="action-btn btn-outline" style="padding:0.65rem 1.25rem;">
+                Cancel
+              </button>
+              <button type="submit" id="btn-submit-add-reel" class="action-btn btn-primary" style="padding:0.65rem 1.5rem;">
+                <span>⚡ Upload &amp; Publish Video Reel</span>
+              </button>
+            </div>
+            <div id="add-reel-status-msg" style="margin-top:1rem; font-family:var(--font-mono); font-size:0.85rem; display:none;"></div>
+          </form>
+        </div>
+
+        <!-- REEL EDIT MODAL -->
+        <div id="edit-reel-modal" class="modal-backdrop" style="display:none;">
+          <div class="modal-content" style="max-width:540px; padding:2rem; background:var(--bg-surface); border:1px solid var(--accent-purple); border-radius:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+              <h3 style="font-family:var(--font-display); font-size:1.3rem; font-weight:800; text-transform:uppercase;">
+                Edit Reel Details
               </h3>
-              <p style="font-size:0.85rem; color:var(--text-secondary);">
-                Audio-visual preview of the ballistic outerwear and archival knitwear drop.
-              </p>
+              <button id="btn-close-edit-reel" class="modal-close" style="position:static; width:32px; height:32px; font-size:1rem;">✕</button>
             </div>
+            <form id="edit-reel-form">
+              <input type="hidden" id="edit-reel-id" />
+              <div class="form-group" style="margin-bottom:1rem;">
+                <label class="form-label" for="edit-reel-title">Title *</label>
+                <input type="text" id="edit-reel-title" class="form-input" required />
+              </div>
+              <div class="form-group" style="margin-bottom:1rem;">
+                <label class="form-label" for="edit-reel-tag">Tag / Badge</label>
+                <input type="text" id="edit-reel-tag" class="form-input" />
+              </div>
+              <div class="form-group" style="margin-bottom:1rem;">
+                <label class="form-label" for="edit-reel-desc">Description</label>
+                <textarea id="edit-reel-desc" class="form-textarea" rows="3"></textarea>
+              </div>
+              <div class="form-group" style="margin-bottom:1.5rem;">
+                <label class="form-label" for="edit-reel-poster">Poster Image URL</label>
+                <input type="url" id="edit-reel-poster" class="form-input" />
+              </div>
+              <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+                <button type="button" id="btn-cancel-edit-reel" class="action-btn btn-outline">Cancel</button>
+                <button type="submit" class="action-btn btn-primary">Save Changes</button>
+              </div>
+            </form>
           </div>
+        </div>
+
+        <!-- DYNAMIC GRID OF MOTION REELS -->
+        <div id="motion-reels-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
+          <!-- Loaded dynamically by script.js from App Storage -->
         </div>
       </section>
 
@@ -187,6 +264,34 @@
     <div class="modal-content">
       <button id="lightbox-close" class="modal-close" aria-label="Close modal">✕</button>
       <div id="lightbox-body"></div>
+    </div>
+  </div>
+
+  <!-- THEATER VIDEO MODAL (UNCROPPED FULLSCREEN VIEW) -->
+  <div id="theater-video-modal" class="theater-modal" style="display:none;" aria-hidden="true">
+    <div class="theater-modal-content">
+      <div class="theater-modal-header">
+        <div class="theater-info">
+          <span class="theater-tag" id="theater-reel-tag">Runway Cut</span>
+          <h3 class="theater-title" id="theater-reel-title">Video Reel</h3>
+        </div>
+        <div class="theater-actions">
+          <button type="button" id="theater-fit-toggle" class="theater-btn" title="Toggle between Fit (uncropped entire frame) and Fill (crop)">
+            ↔ Fit Entire Video
+          </button>
+          <button type="button" id="theater-native-fs" class="theater-btn" title="Expand to True Display Fullscreen">
+            ⛶ Fullscreen
+          </button>
+          <button type="button" id="theater-close" class="theater-btn theater-btn-close" aria-label="Close Theater View" title="Close (ESC)">
+            ✕
+          </button>
+        </div>
+      </div>
+      <div class="theater-video-wrapper">
+        <video id="theater-video-player" class="theater-video-player" controls playsinline preload="auto">
+          Your browser does not support video playback.
+        </video>
+      </div>
     </div>
   </div>
 

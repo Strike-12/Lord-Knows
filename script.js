@@ -8,6 +8,7 @@ window.LK_STATE = {
   countdownTarget: new Date('2027-01-01T00:00:00Z').getTime(),
   images: [],
   products: [],
+  motionReels: [],
   activeFilter: 'all',
   cart: JSON.parse(localStorage.getItem('LK_CART') || '[]')
 };
@@ -198,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCountdown();
   initAppStorage();
   initPictureUploader();
+  initMotionReels();
   initGalleryControls();
   initLightbox();
   initRSVPForm();
@@ -206,6 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMobileMenu();
   initPhotoAreaControls();
   initBatchCustomOrder();
+  initTheaterModal();
 });
 
 // ==========================================
@@ -276,6 +279,7 @@ async function initAppStorage() {
         window.LK_STATE.images = data.images || [];
         window.LK_STATE.products = data.products || [];
         window.LK_STATE.heroProfile = data.heroProfile || null;
+        window.LK_STATE.motionReels = data.motionReels || [];
         if (data.heroProfile && data.heroProfile.url) {
           const heroImg = document.getElementById('hero-student-photo');
           if (heroImg) {
@@ -285,6 +289,7 @@ async function initAppStorage() {
         localStorage.setItem('LK_STORAGE_CACHE', JSON.stringify(data));
         renderGallery();
         renderProducts();
+        renderMotionReels();
         return;
       }
     }
@@ -299,6 +304,7 @@ async function initAppStorage() {
     window.LK_STATE.images = data.images || [];
     window.LK_STATE.products = data.products || [];
     window.LK_STATE.heroProfile = data.heroProfile || null;
+    window.LK_STATE.motionReels = data.motionReels || [];
     if (data.heroProfile && data.heroProfile.url) {
       const heroImg = document.getElementById('hero-student-photo');
       if (heroImg) {
@@ -307,6 +313,7 @@ async function initAppStorage() {
     }
     renderGallery();
     renderProducts();
+    renderMotionReels();
   }
 }
 
@@ -1585,4 +1592,643 @@ function initBatchCustomOrder() {
     }
   });
 }
+
+// ==========================================
+// MOTION REELS MANAGER (Archival Runway & Campaign Reels)
+// ==========================================
+function renderMotionReels() {
+  const container = document.getElementById('motion-reels-grid');
+  if (!container) return;
+
+  const reels = window.LK_STATE.motionReels || [];
+
+  if (reels.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 3.5rem 1.5rem; background: var(--bg-surface); border: 1px dashed var(--accent-purple); border-radius: 8px;">
+        <span style="font-size: 2.2rem; display: block; margin-bottom: 0.75rem;">🎬</span>
+        <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.5rem;">
+          No Motion Reels in Archive
+        </h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.25rem; max-width: 480px; margin-left: auto; margin-right: auto;">
+          Upload your runway footage, campaign reels, or clothing preview videos to display and stream them here in high-definition 4K.
+        </p>
+        <button class="action-btn btn-primary" onclick="window.toggleAddReelPanel(true)" style="padding: 0.65rem 1.5rem;">
+          <span>🎬 + Add First Video Reel</span>
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = reels.map((reel, idx) => {
+    return `
+      <div class="motion-reel-card" data-reel-id="${reel.id}" style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:8px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 4px 20px rgba(0,0,0,0.4); transition:transform 0.25s ease, border-color 0.25s ease;">
+        <div class="motion-reel-container" style="aspect-ratio:16/9; background:#000000; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+          <video class="motion-reel-video" style="width:100%; height:100%; object-fit:contain; background:#000000; display:block;" controls playsinline preload="metadata" poster="${escapeHtml(reel.poster || '')}">
+            <source src="${reel.videoUrl}" type="video/mp4">
+            <source src="${reel.videoUrl}" type="video/webm">
+            Your browser does not support video streaming.
+          </video>
+          <button type="button" class="reel-fs-badge" onclick="window.openReelFullscreen('${reel.id}', event)" title="Watch in Fullscreen (100% Uncropped, Entire Video)">
+            ⛶ Fullscreen
+          </button>
+        </div>
+        
+        <div style="padding: 1.25rem; display:flex; flex-direction:column; flex:1;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; gap:0.5rem; flex-wrap:wrap;">
+            <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--accent-amber); text-transform:uppercase; letter-spacing:0.08em; background:rgba(245,158,11,0.1); padding:2px 8px; border-radius:4px; border:1px solid rgba(245,158,11,0.25);">
+              ${escapeHtml(reel.tag || 'Runway Cut')}
+            </span>
+            <div style="display:flex; gap:0.35rem; align-items:center; flex-wrap:wrap;">
+              <button class="action-btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.7rem; color:var(--accent-purple-light); border-color:rgba(168,85,247,0.4);" onclick="window.openReelFullscreen('${reel.id}', event)" title="Watch in Fullscreen (Entire Frame Uncropped)">
+                ⛶ Fullscreen
+              </button>
+              <button class="action-btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.7rem;" onclick="triggerReplaceReelVideo('${reel.id}')" title="Upload a different video for this reel">
+                🔄 Replace
+              </button>
+              <button class="action-btn btn-outline" style="padding:0.25rem 0.6rem; font-size:0.7rem;" onclick="openEditReelModal('${reel.id}')" title="Edit title and description">
+                ✏️ Edit
+              </button>
+              <button class="action-btn btn-outline btn-delete-reel" data-reel-id="${reel.id}" style="padding:0.25rem 0.65rem; font-size:0.7rem; color:var(--accent-red); border-color:rgba(239,68,68,0.35); cursor:pointer;" onclick="handleDeleteReelClick(this, '${reel.id}', event)" title="Remove reel from archive">
+                🗑 Delete
+              </button>
+            </div>
+          </div>
+
+          <h3 style="font-family:var(--font-display); font-size:1.15rem; font-weight:800; text-transform:uppercase; margin:0.15rem 0 0.5rem; line-height:1.25;">
+            ${escapeHtml(reel.title)}
+          </h3>
+
+          <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5; margin:0 0 1rem; flex:1;">
+            ${escapeHtml(reel.description || '')}
+          </p>
+
+          <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text-muted); display:flex; justify-content:space-between; border-top:1px solid var(--border-subtle); padding-top:0.6rem; margin-top:auto;">
+            <span>REEL #${idx + 1}</span>
+            <span>${reel.date || '2026-09-24'}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+window.renderMotionReels = renderMotionReels;
+
+function initMotionReels() {
+  const toggleBtn = document.getElementById('btn-toggle-add-reel');
+  const panel = document.getElementById('add-reel-panel');
+  const closeBtn = document.getElementById('btn-close-add-reel');
+  const cancelBtn = document.getElementById('btn-cancel-add-reel');
+  const form = document.getElementById('add-reel-form');
+  const statusMsg = document.getElementById('add-reel-status-msg');
+
+  window.toggleAddReelPanel = function(forceOpen) {
+    if (!panel) return;
+    const isVisible = panel.style.display !== 'none';
+    const nextState = forceOpen !== undefined ? forceOpen : !isVisible;
+    panel.style.display = nextState ? 'block' : 'none';
+    if (nextState) {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const titleInput = document.getElementById('reel-title-input');
+      if (titleInput) titleInput.focus();
+    }
+  };
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => window.toggleAddReelPanel());
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => window.toggleAddReelPanel(false));
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => window.toggleAddReelPanel(false));
+  }
+
+  // Add reel form submission
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('reel-file-input');
+      const urlInput = document.getElementById('reel-url-input');
+      const titleInput = document.getElementById('reel-title-input');
+      const tagInput = document.getElementById('reel-tag-input');
+      const posterInput = document.getElementById('reel-poster-input');
+      const descInput = document.getElementById('reel-desc-input');
+      const submitBtn = document.getElementById('btn-submit-add-reel');
+
+      const file = fileInput && fileInput.files && fileInput.files[0];
+      const videoUrl = urlInput ? urlInput.value.trim() : '';
+
+      if (!file && !videoUrl) {
+        alert('Please choose a video file (.mp4, .mov, .webm) or enter a video stream URL.');
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ Uploading Video...</span>';
+      }
+      if (statusMsg) {
+        statusMsg.style.display = 'block';
+        statusMsg.style.color = 'var(--accent-purple-light)';
+        statusMsg.textContent = '⏳ Streaming and saving video to assets/videos/...';
+      }
+
+      try {
+        const formData = new FormData();
+        if (file) {
+          validateUploadSize(file, 35);
+          formData.append('video', file);
+        }
+        if (videoUrl) formData.append('videoUrl', videoUrl);
+        formData.append('title', titleInput ? titleInput.value.trim() : '');
+        formData.append('tag', tagInput ? tagInput.value.trim() : 'Runway Cut');
+        formData.append('description', descInput ? descInput.value.trim() : '');
+        if (posterInput && posterInput.value.trim()) {
+          formData.append('poster', posterInput.value.trim());
+        }
+
+        const res = await fetch('/api/reels', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await safeParseJsonResponse(res);
+        if (res.ok && data.success) {
+          if (!Array.isArray(window.LK_STATE.motionReels)) {
+            window.LK_STATE.motionReels = [];
+          }
+          if (data.reel) {
+            window.LK_STATE.motionReels.unshift(data.reel);
+          } else if (Array.isArray(data.reels)) {
+            window.LK_STATE.motionReels = data.reels;
+          }
+          renderMotionReels();
+          form.reset();
+          if (statusMsg) statusMsg.style.display = 'none';
+          window.toggleAddReelPanel(false);
+          showOrderToast('🎬 Your video was successfully added to Archival Runway & Campaign Reels!');
+        } else {
+          throw new Error(data.message || 'Upload failed');
+        }
+      } catch (err) {
+        console.error('Reel upload error:', err);
+        if (statusMsg) {
+          statusMsg.style.display = 'block';
+          statusMsg.style.color = 'var(--accent-red)';
+          statusMsg.textContent = `Upload error: ${err.message}`;
+        }
+        alert(`Error adding video: ${err.message}`);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>⚡ Upload &amp; Publish Video Reel</span>';
+        }
+      }
+    });
+  }
+
+  // Edit reel modal logic
+  const editModal = document.getElementById('edit-reel-modal');
+  const closeEditBtn = document.getElementById('btn-close-edit-reel');
+  const cancelEditBtn = document.getElementById('btn-cancel-edit-reel');
+  const editForm = document.getElementById('edit-reel-form');
+
+  window.openEditReelModal = function(id) {
+    const reel = (window.LK_STATE.motionReels || []).find(r => r.id === id);
+    if (!reel || !editModal) return;
+
+    document.getElementById('edit-reel-id').value = reel.id;
+    document.getElementById('edit-reel-title').value = reel.title || '';
+    document.getElementById('edit-reel-tag').value = reel.tag || '';
+    document.getElementById('edit-reel-desc').value = reel.description || '';
+    document.getElementById('edit-reel-poster').value = reel.poster || '';
+
+    editModal.style.display = 'flex';
+  };
+
+  const closeEditModal = () => {
+    if (editModal) editModal.style.display = 'none';
+  };
+  if (closeEditBtn) closeEditBtn.addEventListener('click', closeEditModal);
+  if (cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
+
+  if (editForm) {
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('edit-reel-id').value;
+      const title = document.getElementById('edit-reel-title').value;
+      const tag = document.getElementById('edit-reel-tag').value;
+      const description = document.getElementById('edit-reel-desc').value;
+      const poster = document.getElementById('edit-reel-poster').value;
+
+      try {
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('tag', tag);
+        formData.append('description', description);
+        formData.append('poster', poster);
+
+        const res = await fetch(`/api/reels/${id}`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await safeParseJsonResponse(res);
+        if (res.ok && data.success) {
+          const reel = (window.LK_STATE.motionReels || []).find(r => r.id === id);
+          if (reel) {
+            reel.title = title;
+            reel.tag = tag;
+            reel.description = description;
+            reel.poster = poster;
+          }
+          renderMotionReels();
+          closeEditModal();
+          showOrderToast('Reel details updated successfully.');
+        } else {
+          alert(data.message || 'Error updating reel.');
+        }
+      } catch (err) {
+        alert(`Failed to save reel details: ${err.message}`);
+      }
+    });
+  }
+}
+window.initMotionReels = initMotionReels;
+
+window.triggerReplaceReelVideo = function(reelId) {
+  let fileInput = document.getElementById('reel-replace-file-input');
+  if (!fileInput) {
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'reel-replace-file-input';
+    fileInput.accept = 'video/*,.mp4,.mov,.webm,.m4v,.mkv,.avi';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+  }
+
+  fileInput.onchange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    validateUploadSize(file, 35);
+    showOrderToast('Uploading replacement video clip...', false);
+
+    const card = document.querySelector(`.motion-reel-card[data-reel-id="${reelId}"]`);
+    let spinner = null;
+    if (card) {
+      spinner = document.createElement('div');
+      spinner.className = 'photo-uploading-spinner';
+      spinner.innerHTML = `<div class="photo-spinner-ring"></div><span>Uploading replacement video...</span>`;
+      card.appendChild(spinner);
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      formData.append('slotId', reelId);
+
+      const res = await fetch('/api/upload/slot', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await safeParseJsonResponse(res);
+      if (res.ok && data.success) {
+        const target = (window.LK_STATE.motionReels || []).find(r => r.id === reelId);
+        if (target) {
+          target.videoUrl = data.url;
+        }
+        renderMotionReels();
+        showOrderToast('🎬 Video reel successfully replaced!');
+      } else {
+        throw new Error(data.message || 'Failed to replace video');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`Replacement failed: ${err.message}`);
+    } finally {
+      if (spinner && spinner.parentElement) {
+        spinner.parentElement.removeChild(spinner);
+      }
+      fileInput.value = '';
+    }
+  };
+
+  fileInput.click();
+};
+
+// Universal In-App Brutalist Confirmation Modal (avoids window.confirm/alert sandbox blocks in iframes)
+function showAppConfirmModal({ title = 'CONFIRM ACTION', message = 'Are you sure?', confirmText = 'Confirm', cancelText = 'Cancel', danger = false, onConfirm }) {
+  let modal = document.getElementById('app-confirm-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'app-confirm-modal';
+    modal.className = 'modal-backdrop';
+    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:1.5rem;';
+    modal.innerHTML = `
+      <div style="background:var(--bg-surface, #141416); border:1px solid ${danger ? 'var(--accent-red, #ef4444)' : 'var(--accent-purple, #8b5cf6)'}; border-radius:10px; max-width:480px; width:100%; padding:2rem; box-shadow:0 20px 60px rgba(0,0,0,0.9); color:var(--text-primary, #fff);">
+        <div style="font-family:var(--font-mono, monospace); font-size:0.75rem; letter-spacing:0.14em; color:${danger ? 'var(--accent-red, #ef4444)' : 'var(--accent-amber, #f59e0b)'}; text-transform:uppercase; margin-bottom:0.5rem;" id="app-confirm-subtitle">
+          ${escapeHtml(title)}
+        </div>
+        <h3 id="app-confirm-title" style="font-family:var(--font-display, sans-serif); font-size:1.35rem; font-weight:800; text-transform:uppercase; margin-bottom:0.75rem; letter-spacing:0.02em;">
+          ${escapeHtml(title)}
+        </h3>
+        <p id="app-confirm-message" style="font-size:0.9rem; color:var(--text-secondary, #a1a1aa); line-height:1.55; margin-bottom:1.5rem;">
+          ${escapeHtml(message)}
+        </p>
+        <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+          <button id="app-confirm-cancel-btn" class="action-btn btn-outline" style="padding:0.6rem 1.25rem; font-size:0.85rem; border-color:var(--border-subtle, #333);">
+            ${escapeHtml(cancelText)}
+          </button>
+          <button id="app-confirm-action-btn" class="action-btn" style="padding:0.6rem 1.4rem; font-size:0.85rem; background:${danger ? 'var(--accent-red, #ef4444)' : 'var(--accent-purple, #8b5cf6)'}; color:#fff; border:none; font-weight:700; cursor:pointer;">
+            ${escapeHtml(confirmText)}
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } else {
+    document.getElementById('app-confirm-subtitle').textContent = title;
+    document.getElementById('app-confirm-title').textContent = title;
+    document.getElementById('app-confirm-message').textContent = message;
+    const actionBtn = document.getElementById('app-confirm-action-btn');
+    actionBtn.textContent = confirmText;
+    actionBtn.style.background = danger ? 'var(--accent-red, #ef4444)' : 'var(--accent-purple, #8b5cf6)';
+    document.getElementById('app-confirm-cancel-btn').textContent = cancelText;
+  }
+
+  modal.style.display = 'flex';
+
+  const cleanup = () => {
+    modal.style.display = 'none';
+  };
+
+  const cancelBtn = document.getElementById('app-confirm-cancel-btn');
+  const actionBtn = document.getElementById('app-confirm-action-btn');
+
+  const onCancelClick = () => {
+    cleanup();
+    cancelBtn.removeEventListener('click', onCancelClick);
+    actionBtn.removeEventListener('click', onActionClick);
+  };
+
+  const onActionClick = async () => {
+    cleanup();
+    cancelBtn.removeEventListener('click', onCancelClick);
+    actionBtn.removeEventListener('click', onActionClick);
+    if (typeof onConfirm === 'function') {
+      await onConfirm();
+    }
+  };
+
+  cancelBtn.onclick = onCancelClick;
+  actionBtn.onclick = onActionClick;
+}
+window.showAppConfirmModal = showAppConfirmModal;
+
+async function executeDeleteReel(id) {
+  try {
+    showOrderToast('⏳ Deleting video reel from archive...');
+    let res = await fetch(`/api/reels/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      // Fallback for proxies that restrict DELETE HTTP verb
+      res = await fetch(`/api/reels/${id}/delete`, { method: 'POST' });
+    }
+    const data = await safeParseJsonResponse(res);
+    if (res.ok && data.success) {
+      window.LK_STATE.motionReels = (window.LK_STATE.motionReels || []).filter(r => r.id !== id);
+      renderMotionReels();
+      showOrderToast('🎬 Video reel successfully removed from archive.');
+    } else {
+      showOrderToast(data.message || 'Error removing reel from storage.', false);
+    }
+  } catch (err) {
+    console.error('Delete error:', err);
+    showOrderToast(`Failed to delete reel: ${err.message}`, false);
+  }
+}
+window.executeDeleteReel = executeDeleteReel;
+
+window.deleteMotionReel = function(id) {
+  const reel = (window.LK_STATE.motionReels || []).find(r => r.id === id);
+  const title = reel ? `"${reel.title}"` : 'this video reel';
+
+  showAppConfirmModal({
+    title: 'DELETE ARCHIVAL REEL',
+    message: `Are you sure you want to permanently remove ${title} from Motion Reels? The video and associated assets will be deleted from storage.`,
+    confirmText: '🗑 Yes, Delete Reel',
+    cancelText: 'Cancel',
+    danger: true,
+    onConfirm: () => executeDeleteReel(id)
+  });
+};
+
+window.handleDeleteReelClick = function(btn, id, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  // If already clicked once and in confirming state, immediately execute deletion
+  if (btn && btn.dataset.confirming === 'true') {
+    btn.dataset.confirming = 'false';
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Deleting...';
+    executeDeleteReel(id);
+    return;
+  }
+
+  // Otherwise arm the inline button for immediate 2nd click confirmation
+  if (btn) {
+    btn.dataset.confirming = 'true';
+    const prevHtml = btn.innerHTML;
+    btn.innerHTML = '⚠️ Confirm?';
+    btn.style.background = 'var(--accent-red, #ef4444)';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'var(--accent-red, #ef4444)';
+
+    setTimeout(() => {
+      if (btn && btn.dataset.confirming === 'true') {
+        btn.dataset.confirming = 'false';
+        btn.innerHTML = prevHtml;
+        btn.style.background = '';
+        btn.style.color = 'var(--accent-red)';
+        btn.style.borderColor = 'rgba(239,68,68,0.35)';
+      }
+    }, 4000);
+  }
+
+  // Also trigger the modal dialog so user has a prominent modal option as well
+  deleteMotionReel(id);
+};
+
+// ==========================================
+// FULLSCREEN UNCROPPED VIDEO SYSTEM & THEATER CONTROLLER
+// ==========================================
+function enforceFullscreenContain() {
+  const fsEl = document.fullscreenElement || 
+               document.webkitFullscreenElement || 
+               document.mozFullScreenElement || 
+               document.msFullscreenElement;
+  if (fsEl) {
+    if (fsEl.tagName === 'VIDEO') {
+      fsEl.style.setProperty('object-fit', 'contain', 'important');
+      fsEl.style.setProperty('background', '#000000', 'important');
+      fsEl.style.setProperty('width', '100vw', 'important');
+      fsEl.style.setProperty('height', '100vh', 'important');
+      fsEl.style.setProperty('max-width', '100vw', 'important');
+      fsEl.style.setProperty('max-height', '100vh', 'important');
+    } else {
+      fsEl.querySelectorAll('video').forEach(v => {
+        v.style.setProperty('object-fit', 'contain', 'important');
+        v.style.setProperty('background', '#000000', 'important');
+        v.style.setProperty('width', '100vw', 'important');
+        v.style.setProperty('height', '100vh', 'important');
+        v.style.setProperty('max-width', '100vw', 'important');
+        v.style.setProperty('max-height', '100vh', 'important');
+      });
+    }
+  }
+}
+
+['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+  document.addEventListener(evt, enforceFullscreenContain, true);
+});
+
+window.openReelFullscreen = function(reelId, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  const reel = (window.LK_STATE.motionReels || []).find(r => r.id === reelId);
+  const card = document.querySelector(`.motion-reel-card[data-reel-id="${reelId}"]`);
+  const cardVid = card ? card.querySelector('video') : null;
+
+  // Open Theater Modal (guarantees uncropped, full-frame viewing even in iframe)
+  openTheaterModal(reel, cardVid);
+};
+
+window.openTheaterModal = function(reel, sourceVid) {
+  if (!reel) return;
+  const modal = document.getElementById('theater-video-modal');
+  if (!modal) return;
+
+  const player = document.getElementById('theater-video-player');
+  const tagEl = document.getElementById('theater-reel-tag');
+  const titleEl = document.getElementById('theater-reel-title');
+  const fitBtn = document.getElementById('theater-fit-toggle');
+
+  if (tagEl) tagEl.textContent = reel.tag || 'Motion Reel';
+  if (titleEl) titleEl.textContent = reel.title || 'Archival Video Reel';
+
+  if (player) {
+    const currentTime = sourceVid ? sourceVid.currentTime : 0;
+    const isPaused = sourceVid ? sourceVid.paused : false;
+
+    player.src = reel.videoUrl;
+    player.poster = reel.poster || '';
+    try {
+      player.currentTime = currentTime;
+    } catch(e) {}
+    player.style.setProperty('object-fit', 'contain', 'important');
+    player.style.setProperty('background', '#000000', 'important');
+
+    if (fitBtn) {
+      fitBtn.innerHTML = '↔ Fit Entire Video';
+      fitBtn.setAttribute('data-mode', 'contain');
+    }
+
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    if (!isPaused) {
+      player.play().catch(() => {});
+    }
+  }
+};
+
+window.closeTheaterModal = function() {
+  const modal = document.getElementById('theater-video-modal');
+  const player = document.getElementById('theater-video-player');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+  if (player) {
+    try {
+      player.pause();
+      player.src = '';
+    } catch (e) {}
+  }
+  const fs = document.fullscreenElement || document.webkitFullscreenElement;
+  if (fs) {
+    try {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } catch(e) {}
+  }
+};
+
+function initTheaterModal() {
+  const closeBtn = document.getElementById('theater-close');
+  const fitBtn = document.getElementById('theater-fit-toggle');
+  const nativeFsBtn = document.getElementById('theater-native-fs');
+  const modal = document.getElementById('theater-video-modal');
+  const player = document.getElementById('theater-video-player');
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', window.closeTheaterModal);
+  }
+
+  if (fitBtn && player) {
+    fitBtn.addEventListener('click', () => {
+      const currentMode = fitBtn.getAttribute('data-mode') || 'contain';
+      if (currentMode === 'contain') {
+        player.style.setProperty('object-fit', 'cover', 'important');
+        fitBtn.setAttribute('data-mode', 'cover');
+        fitBtn.innerHTML = '🔍 Fill Screen (Cropped)';
+      } else {
+        player.style.setProperty('object-fit', 'contain', 'important');
+        fitBtn.setAttribute('data-mode', 'contain');
+        fitBtn.innerHTML = '↔ Fit Entire Video';
+      }
+    });
+  }
+
+  if (nativeFsBtn && player) {
+    nativeFsBtn.addEventListener('click', () => {
+      const req = player.requestFullscreen || player.webkitRequestFullscreen || player.mozRequestFullScreen || player.msRequestFullscreen;
+      if (req) {
+        try {
+          req.call(player);
+        } catch(e) {
+          console.warn('Native requestFullscreen failed:', e);
+        }
+      }
+    });
+  }
+
+  // Close on backdrop click (if clicking wrapper outside video)
+  const wrapper = document.querySelector('.theater-video-wrapper');
+  if (wrapper) {
+    wrapper.addEventListener('click', (e) => {
+      if (e.target === wrapper) {
+        window.closeTheaterModal();
+      }
+    });
+  }
+
+  // Keyboard shortcut ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const thModal = document.getElementById('theater-video-modal');
+      if (thModal && thModal.style.display !== 'none') {
+        window.closeTheaterModal();
+      }
+    }
+  });
+}
+
+
 

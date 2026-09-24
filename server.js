@@ -3,6 +3,7 @@ import multer from 'multer';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +24,39 @@ const contactReceivedFilePath = path.join(dataDir, 'contactReceived.json');
     fs.mkdirSync(dir, { recursive: true });
   }
 });
+
+// Helper to extract a video frame thumbnail using ffmpeg
+function extractVideoThumbnail(videoFilePath, outputFilename) {
+  try {
+    const posterFilename = outputFilename || `poster-${Date.now()}.jpg`;
+    const posterFullPath = path.join(assetsImagesDir, posterFilename);
+    const posterRelUrl = `/assets/images/${posterFilename}`;
+    // Extract video frame at 1 second mark with high quality
+    execSync(`ffmpeg -ss 00:00:01 -i "${videoFilePath}" -vframes 1 -q:v 2 "${posterFullPath}" -y`, {
+      stdio: 'ignore',
+      timeout: 15000
+    });
+    if (fs.existsSync(posterFullPath)) {
+      return posterRelUrl;
+    }
+  } catch (err) {
+    try {
+      // Fallback try at 0.1s
+      const posterFilename = outputFilename || `poster-${Date.now()}.jpg`;
+      const posterFullPath = path.join(assetsImagesDir, posterFilename);
+      execSync(`ffmpeg -ss 00:00:00.1 -i "${videoFilePath}" -vframes 1 -q:v 2 "${posterFullPath}" -y`, {
+        stdio: 'ignore',
+        timeout: 10000
+      });
+      if (fs.existsSync(posterFullPath)) {
+        return `/assets/images/${posterFilename}`;
+      }
+    } catch (e) {
+      console.warn('ffmpeg video thumbnail extraction failed:', e.message);
+    }
+  }
+  return '/assets/images/heavy_hero_banner_1789792733978.jpg';
+}
 
 // Initialize contactReceived.json if not present
 if (!fs.existsSync(contactReceivedFilePath)) {
@@ -64,7 +98,34 @@ function getStorage() {
   try {
     if (fs.existsSync(storageFilePath)) {
       const raw = fs.readFileSync(storageFilePath, 'utf-8');
-      return JSON.parse(raw);
+      const data = JSON.parse(raw);
+      if (!Array.isArray(data.motionReels)) {
+        data.motionReels = [
+          {
+            id: 'reel-sanctuary-01',
+            tag: 'Runway Cut 01',
+            title: 'Sanctuary Heavyweight Silhouette Showcase',
+            description: 'Captured on 16mm film during the private Lisbon textile presentation.',
+            videoUrl: '/assets/videos/campaign-reel.mp4',
+            poster: '/assets/images/campaign-reel-poster.jpg',
+            date: '2026-09-21',
+            filename: 'campaign-reel.mp4',
+            isUserUpload: false
+          },
+          {
+            id: 'reel-genesis-02',
+            tag: '2027 Preview',
+            title: 'January 1, 2027 Genesis Teaser Reel',
+            description: 'Audio-visual preview of the ballistic outerwear and archival knitwear drop.',
+            videoUrl: '/assets/videos/genesis-teaser.mp4',
+            poster: '/assets/images/genesis-teaser-poster.jpg',
+            date: '2026-09-21',
+            filename: 'genesis-teaser.mp4',
+            isUserUpload: false
+          }
+        ];
+      }
+      return data;
     }
   } catch (err) {
     console.error('Error reading storage.json:', err);
@@ -80,10 +141,34 @@ function getStorage() {
     images: [],
     products: [],
     rsvps: [],
+    motionReels: [
+      {
+        id: 'reel-sanctuary-01',
+        tag: 'Runway Cut 01',
+        title: 'Sanctuary Heavyweight Silhouette Showcase',
+        description: 'Captured on 16mm film during the private Lisbon textile presentation.',
+        videoUrl: '/assets/videos/campaign-reel.mp4',
+        poster: '/assets/images/campaign-reel-poster.jpg',
+        date: '2026-09-21',
+        filename: 'campaign-reel.mp4',
+        isUserUpload: false
+      },
+      {
+        id: 'reel-genesis-02',
+        tag: '2027 Preview',
+        title: 'January 1, 2027 Genesis Teaser Reel',
+        description: 'Audio-visual preview of the ballistic outerwear and archival knitwear drop.',
+        videoUrl: '/assets/videos/genesis-teaser.mp4',
+        poster: '/assets/images/genesis-teaser-poster.jpg',
+        date: '2026-09-21',
+        filename: 'genesis-teaser.mp4',
+        isUserUpload: false
+      }
+    ],
     systemSettings: {
       brandName: 'Lord Knows Clothing',
       theme: 'Dark Brutalist Aesthetic',
-      appStorageVersion: '2.4.0'
+      appStorageVersion: '3.0.0'
     }
   };
 }
@@ -730,6 +815,35 @@ app.post('/api/upload/slot', upload.any(), (req, res) => {
       });
     }
 
+    // Target 4B: Motion Reel slot (e.g. reel-sanctuary-01, reel-genesis-02, or any reel-*)
+    if (slotId.startsWith('reel-')) {
+      if (!Array.isArray(storageData.motionReels)) {
+        storageData.motionReels = [];
+      }
+      const reelIdx = storageData.motionReels.findIndex(r => r.id === slotId);
+      if (reelIdx !== -1) {
+        storageData.motionReels[reelIdx].videoUrl = uploadedUrl;
+        storageData.motionReels[reelIdx].filename = file.filename;
+        if (isVid) {
+          const newPoster = extractVideoThumbnail(file.path, `poster-${file.filename}.jpg`);
+          storageData.motionReels[reelIdx].poster = newPoster;
+        }
+        if (req.body.title) storageData.motionReels[reelIdx].title = req.body.title;
+        if (req.body.tag) storageData.motionReels[reelIdx].tag = req.body.tag;
+        if (req.body.description) storageData.motionReels[reelIdx].description = req.body.description;
+        storageData.motionReels[reelIdx].updatedAt = new Date().toISOString();
+        saveStorage(storageData);
+        return res.json({
+          success: true,
+          message: 'Motion reel video updated successfully.',
+          url: `${uploadedUrl}?t=${timestamp}`,
+          poster: storageData.motionReels[reelIdx].poster,
+          reel: storageData.motionReels[reelIdx],
+          slotId
+        });
+      }
+    }
+
     // Target 5: Specific image in storageData.images
     const foundIdx = storageData.images.findIndex(img => img.id === slotId);
     if (foundIdx !== -1) {
@@ -908,6 +1022,202 @@ app.post('/api/products', (req, res) => {
   saveStorage(storageData);
 
   res.status(201).json({ success: true, product: newProduct });
+});
+
+// =================== MOTION REELS API (assets/videos/) ===================
+
+// GET /api/reels - Return all motion reels
+app.get('/api/reels', (req, res) => {
+  const storageData = getStorage();
+  res.json({
+    success: true,
+    reels: storageData.motionReels || []
+  });
+});
+
+// POST /api/reels - Add a new motion reel
+app.post('/api/reels', upload.any(), (req, res) => {
+  try {
+    const storageData = getStorage();
+    if (!Array.isArray(storageData.motionReels)) {
+      storageData.motionReels = [];
+    }
+
+    const file = getUploadedFile(req);
+    const { title, tag, description, videoUrl: inputVideoUrl, poster: inputPoster } = req.body;
+
+    let finalVideoUrl = inputVideoUrl && inputVideoUrl.trim() ? inputVideoUrl.trim() : '';
+    let finalPoster = inputPoster && inputPoster.trim() ? inputPoster.trim() : '';
+    let filename = '';
+
+    if (file) {
+      const isVid = isVideoFile(file);
+      finalVideoUrl = isVid ? `/assets/videos/${file.filename}` : `/assets/images/${file.filename}`;
+      filename = file.filename;
+      // If no custom poster provided, auto-extract the video frame as the cover
+      if (!finalPoster && isVid) {
+        finalPoster = extractVideoThumbnail(file.path, `poster-${file.filename}.jpg`);
+      }
+    }
+
+    if (!finalPoster) {
+      finalPoster = '/assets/images/heavy_hero_banner_1789792733978.jpg';
+    }
+
+    if (!finalVideoUrl) {
+      return res.status(400).json({ success: false, message: 'Please select a video file or provide a video stream URL.' });
+    }
+
+    const newReel = {
+      id: `reel-${Date.now()}`,
+      tag: tag && tag.trim() ? tag.trim() : 'Archival Cut',
+      title: title && title.trim() ? title.trim() : (file ? path.basename(file.originalname) : 'Custom Motion Reel'),
+      description: description && description.trim() ? description.trim() : 'Archival video reel stream.',
+      videoUrl: finalVideoUrl,
+      poster: finalPoster,
+      date: new Date().toISOString().split('T')[0],
+      filename: filename || '',
+      isUserUpload: true
+    };
+
+    // Prepend new reel so it shows prominently at the start of the section
+    storageData.motionReels.unshift(newReel);
+    saveStorage(storageData);
+
+    res.status(201).json({
+      success: true,
+      message: 'Motion reel successfully added to Archival Runway & Campaign Reels!',
+      reel: newReel,
+      reels: storageData.motionReels
+    });
+  } catch (err) {
+    console.error('Error adding motion reel:', err);
+    res.status(500).json({ success: false, message: err.message || 'Error processing motion reel.' });
+  }
+});
+
+// POST /api/reels/:id or PUT /api/reels/:id - Update or replace video in reel
+app.post('/api/reels/:id', upload.any(), (req, res) => {
+  try {
+    const { id } = req.params;
+    const storageData = getStorage();
+    if (!Array.isArray(storageData.motionReels)) {
+      storageData.motionReels = [];
+    }
+
+    const reelIndex = storageData.motionReels.findIndex(r => r.id === id);
+    if (reelIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Motion reel not found.' });
+    }
+
+    const file = getUploadedFile(req);
+    const { title, tag, description, videoUrl, poster } = req.body;
+
+    if (file) {
+      const isVid = isVideoFile(file);
+      storageData.motionReels[reelIndex].videoUrl = isVid ? `/assets/videos/${file.filename}` : `/assets/images/${file.filename}`;
+      storageData.motionReels[reelIndex].filename = file.filename;
+    } else if (videoUrl && videoUrl.trim()) {
+      storageData.motionReels[reelIndex].videoUrl = videoUrl.trim();
+    }
+
+    if (title !== undefined && title.trim()) storageData.motionReels[reelIndex].title = title.trim();
+    if (tag !== undefined && tag.trim()) storageData.motionReels[reelIndex].tag = tag.trim();
+    if (description !== undefined && description.trim()) storageData.motionReels[reelIndex].description = description.trim();
+    if (poster !== undefined && poster.trim()) storageData.motionReels[reelIndex].poster = poster.trim();
+    storageData.motionReels[reelIndex].updatedAt = new Date().toISOString();
+
+    saveStorage(storageData);
+    res.json({
+      success: true,
+      message: 'Motion reel updated successfully.',
+      reel: storageData.motionReels[reelIndex]
+    });
+  } catch (err) {
+    console.error('Error updating reel:', err);
+    res.status(500).json({ success: false, message: err.message || 'Error updating reel.' });
+  }
+});
+
+// Helper to handle motion reel deletion
+function handleReelDeletion(req, res) {
+  try {
+    const { id } = req.params;
+    const storageData = getStorage();
+    if (!Array.isArray(storageData.motionReels)) {
+      return res.status(404).json({ success: false, message: 'No motion reels found.' });
+    }
+
+    const reelIndex = storageData.motionReels.findIndex(r => r.id === id);
+    if (reelIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Motion reel not found.' });
+    }
+
+    const [deleted] = storageData.motionReels.splice(reelIndex, 1);
+
+    // Optionally delete video and poster file if on disk and user uploaded
+    if (deleted.filename && deleted.isUserUpload) {
+      const filePath = path.join(assetsVideosDir, deleted.filename);
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (e) {
+          console.warn('Could not delete reel file on disk:', e);
+        }
+      }
+    }
+
+    saveStorage(storageData);
+    res.json({
+      success: true,
+      message: 'Motion reel deleted successfully.',
+      id,
+      reels: storageData.motionReels
+    });
+  } catch (err) {
+    console.error('Error deleting reel:', err);
+    res.status(500).json({ success: false, message: err.message || 'Error deleting reel.' });
+  }
+}
+
+// DELETE /api/reels/:id - Delete motion reel
+app.delete('/api/reels/:id', handleReelDeletion);
+
+// POST /api/reels/:id/delete - Delete motion reel fallback for environments blocking DELETE
+app.post('/api/reels/:id/delete', handleReelDeletion);
+
+// POST /api/reels/reorder - Reorder motion reels
+app.post('/api/reels/reorder', (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    const storageData = getStorage();
+    if (!Array.isArray(storageData.motionReels)) {
+      storageData.motionReels = [];
+    }
+
+    if (Array.isArray(orderedIds) && orderedIds.length > 0) {
+      const map = new Map();
+      storageData.motionReels.forEach(r => map.set(r.id, r));
+      const reordered = [];
+      orderedIds.forEach(id => {
+        if (map.has(id)) {
+          reordered.push(map.get(id));
+          map.delete(id);
+        }
+      });
+      map.forEach(r => reordered.push(r));
+      storageData.motionReels = reordered;
+      saveStorage(storageData);
+    }
+
+    res.json({
+      success: true,
+      message: 'Motion reels reordered successfully.',
+      reels: storageData.motionReels
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message || 'Error reordering reels.' });
+  }
 });
 
 // Reset App Storage to Defaults
