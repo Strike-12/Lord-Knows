@@ -7,17 +7,17 @@
     "status": "Ticking Down"
   },
   "heroProfile": {
-    "url": "/assets/images/hero_profile.jpg?t=1790186365698",
-    "mediaType": "image",
-    "updatedAt": "2026-09-23T17:59:25.699Z"
+    "url": "/assets/videos/user-1790271098375-Man_modeling_clothing_brand_20260924103046.mp4?t=1790271098612",
+    "mediaType": "video",
+    "updatedAt": "2026-09-24T17:31:38.612Z"
   },
   "images": [
     {
       "id": "img-reselling-01",
       "title": "Streetwear & Sneaker Reselling Vault",
       "category": "Fit Pics",
-      "url": "/assets/images/reselling_clothes_shoes.jpg?t=1790185486228",
-      "thumbnail": "/assets/images/reselling_clothes_shoes.jpg?t=1790185486228",
+      "url": "/assets/images/reselling_clothes_shoes.jpg?t=1790271132798",
+      "thumbnail": "/assets/images/reselling_clothes_shoes.jpg?t=1790271132798",
       "caption": "Authentic clothes & shoes inventory: Alo Yoga grey sweatpants, baby pink Lululemon top, Bape graphic tee, Awful Lot of Cough Syrup Scarface tee, and limited hype sneakers on chrome liquid puddle rug.",
       "uploader": "Elsen Keena",
       "date": "2026-09-21",
@@ -40,8 +40,8 @@
       "id": "img-profile-01",
       "title": "Elsen Keena",
       "category": "Editorial",
-      "url": "/assets/images/featured_media_portrait.jpg?t=1790186374884",
-      "thumbnail": "/assets/images/featured_media_portrait.jpg?t=1790186374884",
+      "url": "/assets/images/featured_media_portrait.jpg?t=1790271092485",
+      "thumbnail": "/assets/images/featured_media_portrait.jpg?t=1790271092485",
       "caption": "Grossmont High School student, creator, and founder of the Lord Knows streetwear brand.",
       "uploader": "Elsen Keena",
       "date": "2026-09-21",
@@ -52,12 +52,13 @@
       "id": "img-directed-01",
       "title": "DIRECTED BY THE LORD Heavyweight Hoodie",
       "category": "Editorial",
-      "url": "/assets/images/directed_lord_hoodie_puff_1789793017180.jpg",
-      "thumbnail": "/assets/images/directed_lord_hoodie_puff_1789793017180.jpg",
+      "url": "/assets/images/directed_lord_hoodie_puff_1789793017180.jpg?t=1790271120073",
+      "thumbnail": "/assets/images/directed_lord_hoodie_puff_1789793017180.jpg?t=1790271120073",
       "caption": "Back: Thick 3D raised matte puff print 'DIRECTED BY THE LORD' in sharp barbed-wire frame. Front: 'STAY HUMBLE - LORD KNOWS'. 100% 500 GSM loopback cotton, zero polyester.",
       "uploader": "Lord Knows Studio",
       "date": "2026-09-18",
-      "isUserUpload": false
+      "isUserUpload": false,
+      "mediaType": "image"
     },
     {
       "id": "img-directed-02",
